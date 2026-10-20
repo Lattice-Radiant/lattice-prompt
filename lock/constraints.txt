@@ -1,0 +1,8 @@
+# Constraints applied to the first resolution (the build that writes
+# requirements.lock). Once requirements.lock exists these pins are already in
+# it; edit here, delete the lock and rebuild to re-resolve.
+#
+# markupsafe 3.0.4: the wheel's download stalls (headers, then zero bytes)
+# through the Lattice proxy as of 2026-10-20; 3.0.3 is the last version that
+# downloads and Jinja2 3.1 accepts either.
+markupsafe==3.0.3

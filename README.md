@@ -63,6 +63,11 @@ The build downloads the runtime and MinGit named in `lock/third-party.json`
 installs the packages from `lock/requirements.lock` into the bundled Python
 (or writes that lock on the first build), runs `smoke.py` inside the bundle
 and writes `dist/lattice-prompt-<version>-win64.zip` with a checksum file.
+Behind a proxy that inspects TLS, pass `--pip-cert <CA bundle>` (or set
+`PIP_CERT`). Re-resolving the lock (delete `lock/requirements.lock` first)
+honours `lock/constraints.txt`; `--seed-from <python.exe>` additionally
+constrains the resolution to the versions installed in that interpreter, so
+a network that refuses new downloads can still resolve from pip's cache.
 
 In CI, the `release` workflow does the same on a Windows runner when
 dispatched with a version, and attaches the zip to a GitHub release of this

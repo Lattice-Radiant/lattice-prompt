@@ -15,7 +15,8 @@ Steps, each idempotent on a clean dist directory:
    knowledge base need a git checkout, not an export).
 4. Install the packages into the bundled Python: from lock/requirements.lock
    when it exists (exact versions, no resolution), else resolve from the
-   components' requirements and write the lock for the next build.
+   components' requirements under lock/constraints.txt and write the lock
+   for the next build.
 5. Write VERSION.json, run smoke.py with the bundled interpreter, zip.
 
 Downloads go through Python's TLS stack; --pip-cert (or the PIP_CERT
@@ -27,6 +28,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import ssl
 import subprocess
@@ -45,10 +47,25 @@ COMPONENTS = {
 }
 LOCK_DIR = os.path.join(ROOT, 'lock')
 REQ_LOCK = os.path.join(LOCK_DIR, 'requirements.lock')
+CONSTRAINTS = os.path.join(LOCK_DIR, 'constraints.txt')
 
 
 def log(msg):
     print(f'[build] {msg}', flush=True)
+
+
+def _writable_then_retry(func, path, exc):
+    # Windows refuses to delete read-only files (git's pack files are).
+    import stat
+    os.chmod(path, os.stat(path).st_mode | stat.S_IWRITE)
+    func(path)
+
+
+def rmtree(path):
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=_writable_then_retry)
+    else:
+        shutil.rmtree(path, onerror=lambda f, p, e: _writable_then_retry(f, p, e[1]))
 
 
 def sha256(path):
@@ -100,12 +117,52 @@ def clone_component(name, src, dest):
     return commit
 
 
+def first_constraints(seed_from, bundle):
+    """Constraints for the first resolution: lock/constraints.txt, then (with
+    --seed-from) every pinned version of another interpreter that the file
+    does not already name, so pip prefers wheels that are already cached."""
+    names = set()
+    lines = []
+    if os.path.isfile(CONSTRAINTS):
+        for line in open(CONSTRAINTS, encoding='utf-8'):
+            spec = line.split('#', 1)[0].strip()
+            if spec:
+                lines.append(spec)
+                names.add(re.split(r'[<>=!~\[; ]', spec, 1)[0].lower().replace('_', '-'))
+    if seed_from:
+        frozen = subprocess.run([seed_from, '-m', 'pip', 'freeze', '--exclude-editable'],
+                                capture_output=True, text=True, check=True).stdout
+        for spec in frozen.splitlines():
+            if '==' not in spec or ' @ ' in spec:
+                continue
+            name = spec.split('==', 1)[0].lower().replace('_', '-')
+            if name not in names:
+                lines.append(spec)
+                names.add(name)
+        log(f'seeding the resolution from {seed_from} ({len(lines)} constraints)')
+    path = os.path.join(bundle, 'first-constraints.txt')
+    with open(path, 'w', encoding='utf-8', newline='\n') as fh:
+        fh.write('\n'.join(lines) + '\n')
+    return path
+
+
 def pip(py, args, cert):
-    cmd = [py, '-m', 'pip', '--disable-pip-version-check', '--no-warn-script-location']
+    cmd = [py, '-m', 'pip', '--disable-pip-version-check']
     if cert:
         cmd += ['--cert', cert]
+    if args and args[0] == 'install':
+        args = ['install', '--no-warn-script-location'] + args[1:]
     log('pip ' + ' '.join(args[:3]) + (' ...' if len(args) > 3 else ''))
-    subprocess.run(cmd + args, check=True)
+    # A Windows antivirus scan can hold pip's unpack files for a moment
+    # ("WinError 32 ... used by another process"); one retry covers it.
+    for attempt in (1, 2):
+        r = subprocess.run(cmd + args)
+        if r.returncode == 0:
+            return
+        if attempt == 1:
+            log('pip failed; retrying once')
+            time.sleep(5)
+    raise SystemExit('pip failed twice')
 
 
 def main(argv=None) -> int:
@@ -113,6 +170,9 @@ def main(argv=None) -> int:
     parser.add_argument('--version', required=True)
     parser.add_argument('--make-exe', default=shutil.which('make'))
     parser.add_argument('--pip-cert', default=os.environ.get('PIP_CERT'))
+    parser.add_argument('--seed-from', metavar='PYTHON',
+                        help='interpreter whose installed versions constrain the first resolution '
+                             '(its wheels are already in the pip cache on a network that blocks new downloads)')
     parser.add_argument('--skip-smoke', action='store_true')
     parser.add_argument('--no-zip', action='store_true')
     args = parser.parse_args(argv)
@@ -124,7 +184,7 @@ def main(argv=None) -> int:
     bundle = os.path.join(dist, name)
     if os.path.isdir(bundle):
         log(f'removing {bundle}')
-        shutil.rmtree(bundle)
+        rmtree(bundle)
     os.makedirs(bundle)
 
     # 1 + 2: runtime and tools
@@ -160,9 +220,12 @@ def main(argv=None) -> int:
     kb = os.path.join(bundle, 'components', 'cortex-kb')
     if os.path.isfile(REQ_LOCK):
         pip(py, ['install', '--no-deps', '-r', REQ_LOCK], args.pip_cert)
-        pip(py, ['install', '--no-deps', '--no-build-isolation', os.path.join(a2c, 'mcp'), kb], args.pip_cert)
+        # Isolated builds, as on the first resolution: the bundled Python ships
+        # pip only, not setuptools or hatchling.
+        pip(py, ['install', '--no-deps', os.path.join(a2c, 'mcp'), kb], args.pip_cert)
     else:
-        pip(py, ['install', '-r', os.path.join(a2c, 'requirements.txt'), os.path.join(a2c, 'mcp'), f'{kb}[mcp]'], args.pip_cert)
+        constrain = ['-c', first_constraints(args.seed_from, bundle)]
+        pip(py, ['install'] + constrain + ['-r', os.path.join(a2c, 'requirements.txt'), os.path.join(a2c, 'mcp'), f'{kb}[mcp]'], args.pip_cert)
         frozen = subprocess.run([py, '-m', 'pip', 'freeze', '--exclude-editable'], capture_output=True,
                                 text=True, check=True).stdout
         lines = [l for l in frozen.splitlines()
@@ -172,6 +235,7 @@ def main(argv=None) -> int:
             fh.write('# Written by build/build.py from the first resolution; later builds install exactly these.\n')
             fh.write('\n'.join(lines) + '\n')
         log(f'wrote {REQ_LOCK} ({len(lines)} packages)')
+        os.remove(os.path.join(bundle, 'first-constraints.txt'))
     # pip itself stays, but its own console scripts carry an absolute path; the
     # launchers call python -m, so nothing in Scripts/ is relied on.
 

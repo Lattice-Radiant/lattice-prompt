@@ -44,11 +44,16 @@ def env():
 
 
 def run(cmd, cwd=None, timeout=900):
+    # CreateProcess searches the parent's PATH, not the child's, so resolve
+    # the executable against the bundle PATH explicitly.
+    exe = shutil.which(cmd[0], path=env()['PATH'])
+    cmd = [exe or cmd[0]] + list(cmd[1:])
     return subprocess.run(cmd, cwd=cwd, env=env(), capture_output=True, text=True,
                           encoding='utf-8', errors='replace', timeout=timeout)
 
 
 def check_runtime():
+    os.environ.update(env())   # the launchers set these; the bare imports need A2C_ROOT
     check(os.path.samefile(sys.executable, PY), f'running the bundled interpreter ({sys.executable})')
     check(sys.version_info[:2] == (3, 12), f'Python {sys.version.split()[0]}')
     for mod in ('yaml', 'jinja2', 'graphviz', 'ruamel.yaml', 'colorama', 'junit_xml',
