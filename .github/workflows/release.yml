@@ -1,0 +1,70 @@
+name: Release bundle
+
+# Builds lattice-prompt-<version>-win64.zip on a Windows runner from the pinned
+# components and the runtime inputs in lock/third-party.json, runs the smoke
+# test inside the bundle, and attaches the zip to a GitHub release when the
+# run was dispatched with publish=true. The two components are private
+# repositories of the same organisation, so the checkout needs a token that
+# can read them (secret COMPONENTS_TOKEN); the default GITHUB_TOKEN sees only
+# this repository.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Bundle version, for example 0.1.0'
+        required: true
+      publish:
+        description: 'Create a GitHub release with the zip'
+        type: boolean
+        default: false
+
+jobs:
+  bundle:
+    runs-on: [windows-latest]
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout with the component pins
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          token: ${{ secrets.COMPONENTS_TOKEN }}
+
+      - name: Set up the build Python (build script only; not the bundled one)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install GNU make for the bundle
+        run: choco install make --no-progress -y
+
+      - name: Build the bundle
+        run: |
+          $make = (Get-Command make).Source
+          python build/build.py --version "${{ inputs.version }}" --make-exe "$make"
+
+      - name: Record what was built
+        run: Get-Content "dist/lattice-prompt-${{ inputs.version }}-win64/VERSION.json"
+
+      - name: Upload the bundle as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lattice-prompt-${{ inputs.version }}-win64
+          path: |
+            dist/lattice-prompt-${{ inputs.version }}-win64.zip
+            dist/lattice-prompt-${{ inputs.version }}-win64.zip.sha256
+          if-no-files-found: error
+
+      - name: Publish a GitHub release
+        if: ${{ inputs.publish }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ inputs.version }}" `
+            "dist/lattice-prompt-${{ inputs.version }}-win64.zip" `
+            "dist/lattice-prompt-${{ inputs.version }}-win64.zip.sha256" `
+            --title "lattice-prompt ${{ inputs.version }}" `
+            --notes-file "dist/lattice-prompt-${{ inputs.version }}-win64/VERSION.json"

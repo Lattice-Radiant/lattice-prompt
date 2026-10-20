@@ -1,0 +1,6 @@
+[submodule "components/cortex-a2c"]
+	path = components/cortex-a2c
+	url = https://github.com/Lattice-Radiant/cortex-a2c.git
+[submodule "components/cortex-kb"]
+	path = components/cortex-kb
+	url = https://github.com/Lattice-Radiant/cortex-kb.git
