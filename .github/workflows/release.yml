@@ -81,6 +81,9 @@ jobs:
     needs: bundle
     runs-on: ubuntu-22.04
     steps:
+      - name: Checkout (release notes and the component pins)
+        uses: actions/checkout@v4
+
       - name: Collect both bundles
         uses: actions/download-artifact@v4
         with:
@@ -92,7 +95,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -l dist
+          # RELEASE_NOTES.md (install and native-simulation summary) followed
+          # by the exact component commits of this release.
+          { sed "s/<version>/${{ inputs.version }}/g" RELEASE_NOTES.md
+            echo
+            echo "## Components"
+            echo
+            git ls-tree HEAD components/ | awk '{print "- `" $4 "`: " $3}'
+          } > notes.md
           gh release create "v${{ inputs.version }}" dist/* \
             --repo "${{ github.repository }}" \
             --title "lattice-prompt ${{ inputs.version }}" \
-            --notes "Bundles for Windows x64 (zip) and Linux x86_64 (tar.gz); see VERSION.json inside each for the component commits and runtime versions."
+            --notes-file notes.md

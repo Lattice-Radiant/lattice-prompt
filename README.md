@@ -68,11 +68,10 @@ Windows:
    `arch2code` and `cortex-kb` in `~/.claude.json` (Claude Code) and in the
    Claude Desktop configuration, backing both files up. `install.cmd --uninstall`
    removes them.
-3. Optional, for native simulation: install the MSYS2 clang64 toolchain as
-   described in `components/cortex-a2c/document/source/modules/ROOT/pages/runOnWindows.adoc`
-   (`winget install MSYS2.MSYS2`, the pacman packages, then
-   `scripts/windows/setup-systemc-msys2.sh`). Questa is found automatically
-   under `C:\lscc` when Radiant is installed. Neither is part of the bundle.
+3. Optional, for native simulation (SystemC model and Verilator
+   co-simulation): see [Native simulation](#native-simulation) below.
+   Questa lint is found automatically under `C:\lscc` when Radiant is
+   installed. Neither is part of the bundle.
 
 Linux:
 
@@ -81,11 +80,98 @@ Linux:
 2. Run `./install.sh` from the extracted directory. It registers the same two
    servers in `~/.claude.json` and in `$XDG_CONFIG_HOME/Claude/claude_desktop_config.json`
    (default `~/.config`). `./install.sh --uninstall` removes them.
-3. Optional, for native simulation: a C++ compiler, SystemC and Verilator as
-   described in the cortex-a2c documentation; Questa from the Radiant install.
+3. Optional, for native simulation: see [Native simulation](#native-simulation)
+   below. Questa from the Radiant install.
 
 On either platform `python smoke.py` (with the bundled interpreter) reruns
 the checks the release build ran.
+
+## Native simulation
+
+The generator, both MCP servers, Questa lint and everything the smoke test
+covers work with the bundle alone. Building and running a SystemC model, or
+the Verilator co-simulation of a block (`make -C rundir run VL_DUT=1`), also
+needs a C++ toolchain, SystemC, Boost and Verilator. They are not bundled:
+on Windows they come from MSYS2, on Linux from the distribution or a site
+install. One-time setup per machine, in the bundle's directory
+(`<bundle>` below):
+
+### Windows (MSYS2 clang64)
+
+1. Install MSYS2 and the toolchain packages. In a command prompt:
+
+   ```
+   winget install --id MSYS2.MSYS2
+   ```
+
+   then in the MSYS2 clang64 shell (`C:\msys64\clang64.exe`):
+
+   ```
+   pacman -Syu --needed mingw-w64-clang-x86_64-clang mingw-w64-clang-x86_64-lld \
+       mingw-w64-clang-x86_64-make mingw-w64-clang-x86_64-cmake \
+       mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-boost \
+       mingw-w64-clang-x86_64-fmt mingw-w64-clang-x86_64-verilator perl
+   ```
+
+   Verilator 5.050 or newer is required (older releases do not compile as
+   C++23 under libc++); `pacman -Syu` first if the mirror offers an older one.
+
+2. Install SystemC and finish the Verilator setup. In the same clang64 shell,
+   with the bundle at `C:\lattice-prompt` for example:
+
+   ```
+   /c/lattice-prompt/components/cortex-a2c/scripts/windows/setup-systemc-msys2.sh
+   ```
+
+   The script installs MSYS2's SystemC 3.0 package, repacks it into a static
+   library the model links without a DLL, checks the Verilator version and
+   raises the stack reserve of `verilator_bin.exe` (its default 1 MB
+   overflows on real designs). Rerun it after a Verilator package update.
+
+3. Verify. In a command prompt, from the bundle directory:
+
+   ```
+   bin\a2c-make -C components\cortex-a2c\examples\helloWorld\rundir -j4 all
+   bin\a2c-make -C components\cortex-a2c\examples\helloWorld\rundir run
+   ```
+
+   The run ends with `No error`. In Claude, the `toolchain_detect` tool of the
+   `arch2code` server reports the same toolchain state.
+
+The makefiles find MSYS2 under `C:\msys64` (`A2C_MSYS2_ROOT` overrides the
+location) and set `SYSTEMC_INCLUDE`, `SYSTEMC_LIBDIR`, `BOOST_INCLUDE`,
+`BOOST_LIBS` and `VERILATOR_ROOT` from it, so no environment variables are
+needed. Behind a TLS-inspecting proxy, `pacman` needs the proxy's CA chain
+in `/etc/pki/ca-trust/source/anchors/` followed by `update-ca-trust`.
+
+### Linux
+
+1. Install a C++ compiler (clang++ is the default; `A2C_CLANG` names another
+   compiler), Boost with `program_options`, Verilator 5.x and SystemC 2.3.4
+   or 3.0 from the distribution or a site install. On Ubuntu 24.04 the
+   distribution packages are `clang`, `libboost-program-options-dev`,
+   `verilator` and `libsystemc-dev`.
+2. Export where they are; the makefiles stop with a message naming the
+   variable if one is missing:
+
+   ```
+   export SYSTEMC_INCLUDE=/usr/include
+   export SYSTEMC_LIBDIR=/usr/lib
+   export BOOST_INCLUDE=/usr/include/boost
+   export LD_BOOST=/usr/lib/x86_64-linux-gnu
+   ```
+
+   (These are the values of the arch2code development image; a site install
+   under another prefix uses its `include` and `lib` directories.)
+3. Verify, from the bundle directory:
+
+   ```
+   bin/a2c-make -C components/cortex-a2c/examples/helloWorld/rundir -j4 all
+   bin/a2c-make -C components/cortex-a2c/examples/helloWorld/rundir run
+   ```
+
+The full reference is `components/cortex-a2c/document/source/modules/ROOT/pages/runOnWindows.adoc`
+(Windows) and the arch2code documentation under `components/cortex-a2c/document`.
 
 ## Build a release
 
