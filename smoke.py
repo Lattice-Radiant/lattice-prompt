@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WINDOWS = sys.platform == 'win32'
@@ -33,6 +34,18 @@ def check(ok, message):
     print(f"{'PASS' if ok else 'FAIL'}: {message}")
     if not ok:
         failures.append(message)
+
+
+def check_run(r, message, tail=40):
+    """check() on a completed process; on failure, show the end of its output
+    so a CI log says why."""
+    check(r.returncode == 0, f'{message} (rc {r.returncode})')
+    if r.returncode != 0:
+        for stream, text in (('stdout', r.stdout), ('stderr', r.stderr)):
+            lines = (text or '').splitlines()
+            if lines:
+                print(f'--- {message}: last {min(tail, len(lines))} lines of {stream} ---')
+                print('\n'.join(lines[-tail:]))
 
 
 def env():
@@ -97,9 +110,9 @@ def check_generator():
             lines = [f'A2C_ROOT = {A2C.replace(chr(92), "/")}\n' if l.startswith('A2C_ROOT = ') else l for l in lines]
             open(path, 'w', encoding='utf-8', newline='\n').write(''.join(lines))
         r = run(['make', '-C', proj, 'db'])
-        check(r.returncode == 0, f'make db on a copy of examples/simple (rc {r.returncode})')
+        check_run(r, 'make db on a copy of examples/simple')
         r = run(['make', '-C', proj, '-j4', 'gen'])
-        check(r.returncode == 0, f'make gen on the copy (rc {r.returncode})')
+        check_run(r, 'make gen on the copy')
         r = run([PY, '-m', 'pysrc.driver', 'status', os.path.join(proj, 'arch', 'yaml', 'project.yaml')], cwd=A2C)
         check(r.returncode == 0 and 'rundir' in r.stdout, 'the driver reads the project')
     finally:
@@ -120,6 +133,28 @@ async def mcp_session(command, call):
             return names, text
 
 
+async def kb_status_when_built(command, timeout_s=900):
+    """kb_status while the server is still building its session index returns
+    {"building": true}; on a fresh cache (CI, first start) that takes a while.
+    Keep one session open and ask again until the index is ready."""
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+    params = StdioServerParameters(command=command, args=[], env=env())
+    deadline = time.monotonic() + timeout_s
+    async with stdio_client(params) as (r, w):
+        async with ClientSession(r, w) as s:
+            await asyncio.wait_for(s.initialize(), timeout=120)
+            tools = await asyncio.wait_for(s.list_tools(), timeout=60)
+            names = sorted(t.name for t in tools.tools)
+            while True:
+                result = await asyncio.wait_for(s.call_tool('kb_status', {}), timeout=300)
+                text = result.content[0].text if result.content else ''
+                status = json.loads(text) if text.strip().startswith('{') else {}
+                if not (isinstance(status, dict) and status.get('building')) or time.monotonic() > deadline:
+                    return names, text, status
+                await asyncio.sleep(10)
+
+
 def check_servers():
     a2c = os.path.join(ROOT, 'bin', 'a2c-mcp' + EXT)
     try:
@@ -130,10 +165,10 @@ def check_servers():
         check(False, f'arch2code MCP: {exc}')
     kb = os.path.join(ROOT, 'bin', 'kb-mcp' + EXT)
     try:
-        names, text = asyncio.run(mcp_session(kb, ('kb_status', {})))
+        names, text, status = asyncio.run(kb_status_when_built(kb))
         check('kb_find_ips' in names, f'cortex-kb MCP: {len(names)} tools')
-        status = json.loads(text) if text.strip().startswith('{') else {}
-        check(isinstance(status, dict) and status, f'cortex-kb MCP: kb_status answers ({str(text)[:80]})')
+        check(isinstance(status, dict) and status and not status.get('building') and 'error' not in status,
+              f'cortex-kb MCP: kb_status answers ({str(text)[:80]})')
     except Exception as exc:  # noqa: BLE001
         check(False, f'cortex-kb MCP: {exc}')
 
