@@ -1,15 +1,17 @@
 """Assemble a lattice-prompt release bundle.
 
-    python build/build.py --version <version> [--make-exe <path>] [--pip-cert <pem>]
+    python build/build.py --version <version> [--platform win64|linux-x86_64]
+                          [--make-exe <path>] [--pip-cert <pem>] [--seed-from <python>]
                           [--skip-smoke] [--no-zip]
 
-Steps, each idempotent on a clean dist directory:
+A bundle is built on its own platform (the packages are installed by running
+the bundled interpreter). Steps, each idempotent on a clean dist directory:
 
 1. Fetch the runtime inputs named in lock/third-party.json into build/cache
    (verifying SHA-256; a cached file with the right digest is reused).
-2. Lay out dist/lattice-prompt-<version>-win64: python/ (the relocatable
-   CPython), git/ (MinGit), tools/make.exe, bin/, install.py, install.cmd,
-   smoke.py.
+2. Lay out dist/lattice-prompt-<version>-<platform>: python/ (the relocatable
+   CPython), on Windows git/ (MinGit) and tools/make.exe, the platform's
+   launchers in bin/, install.py with install.cmd or install.sh, smoke.py.
 3. Clone the two components from the submodule checkouts at their pinned
    commits (single-branch, depth 1; the generator's makefiles and the
    knowledge base need a git checkout, not an export).
@@ -17,7 +19,8 @@ Steps, each idempotent on a clean dist directory:
    when it exists (exact versions, no resolution), else resolve from the
    components' requirements under lock/constraints.txt and write the lock
    for the next build.
-5. Write VERSION.json, run smoke.py with the bundled interpreter, zip.
+5. Write VERSION.json, run smoke.py with the bundled interpreter, archive
+   (zip on Windows, tar.gz on Linux so the executable bits survive).
 
 Downloads go through Python's TLS stack; --pip-cert (or the PIP_CERT
 environment variable) names a CA bundle for a TLS-inspecting proxy, used for
@@ -49,9 +52,44 @@ LOCK_DIR = os.path.join(ROOT, 'lock')
 REQ_LOCK = os.path.join(LOCK_DIR, 'requirements.lock')
 CONSTRAINTS = os.path.join(LOCK_DIR, 'constraints.txt')
 
+# What differs per platform. 'python' is the interpreter's path inside the
+# extracted python/ directory; 'bundle_tools' says whether git and make ship in
+# the bundle (Windows) or come from the system (Linux).
+PLATFORMS = {
+    'win64': {
+        'python': ('python.exe',),
+        'bundle_tools': True,
+        'launchers': ('_env.cmd', 'a2c-mcp.cmd', 'kb-mcp.cmd', 'a2c-make.cmd', 'a2c-shell.cmd'),
+        'installer': 'install.cmd',
+        'archive': '.zip',
+    },
+    'linux-x86_64': {
+        'python': ('bin', 'python3'),
+        'bundle_tools': False,
+        'launchers': ('_env.sh', 'a2c-mcp', 'kb-mcp', 'a2c-make', 'a2c-shell'),
+        'installer': 'install.sh',
+        'archive': '.tar.gz',
+    },
+}
+
+
+def host_platform():
+    if sys.platform == 'win32':
+        return 'win64'
+    if sys.platform.startswith('linux') and os.uname().machine in ('x86_64', 'amd64'):
+        return 'linux-x86_64'
+    raise SystemExit(f'no bundle definition for this host ({sys.platform}, {os.uname().machine})')
+
 
 def log(msg):
     print(f'[build] {msg}', flush=True)
+
+
+def tool_version(cmd, cwd=None):
+    try:
+        return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=60).stdout.strip().splitlines()[0]
+    except Exception:  # noqa: BLE001
+        return 'unknown'
 
 
 def _writable_then_retry(func, path, exc):
@@ -173,13 +211,19 @@ def main(argv=None) -> int:
     parser.add_argument('--seed-from', metavar='PYTHON',
                         help='interpreter whose installed versions constrain the first resolution '
                              '(its wheels are already in the pip cache on a network that blocks new downloads)')
+    parser.add_argument('--platform', choices=sorted(PLATFORMS), default=host_platform(),
+                        help='bundle platform (default: the host); the packages are installed by '
+                             'running the bundled interpreter, so a bundle is built on its own platform')
     parser.add_argument('--skip-smoke', action='store_true')
     parser.add_argument('--no-zip', action='store_true')
     args = parser.parse_args(argv)
+    if args.platform != host_platform():
+        raise SystemExit(f'a {args.platform} bundle is built on {args.platform}, not on {host_platform()}')
+    plat = PLATFORMS[args.platform]
 
     with open(os.path.join(LOCK_DIR, 'third-party.json'), encoding='utf-8') as fh:
         third = json.load(fh)
-    name = f'lattice-prompt-{args.version}-win64'
+    name = f'lattice-prompt-{args.version}-{args.platform}'
     dist = os.path.join(ROOT, 'dist')
     bundle = os.path.join(dist, name)
     if os.path.isdir(bundle):
@@ -188,26 +232,42 @@ def main(argv=None) -> int:
     os.makedirs(bundle)
 
     # 1 + 2: runtime and tools
-    py_archive = fetch(third['python'], args.pip_cert)
+    py_archive = fetch(third['python'][args.platform], args.pip_cert)
     log('extracting the Python runtime')
     with tarfile.open(py_archive) as tf:
         tf.extractall(bundle, filter='data')          # yields bundle/python
-    py = os.path.join(bundle, 'python', 'python.exe')
+    py = os.path.join(bundle, 'python', *plat['python'])
     assert os.path.isfile(py), py
-    git_archive = fetch(third['git'], args.pip_cert)
-    log('extracting MinGit')
-    with zipfile.ZipFile(git_archive) as zf:
-        zf.extractall(os.path.join(bundle, 'git'))
-    if not args.make_exe or not os.path.isfile(args.make_exe):
-        raise SystemExit('GNU make not found: pass --make-exe (see lock/third-party.json)')
-    os.makedirs(os.path.join(bundle, 'tools'))
-    shutil.copy2(args.make_exe, os.path.join(bundle, 'tools', 'make.exe'))
-    for rel in ('bin', 'install.py', 'install.cmd', 'smoke.py'):
-        src = os.path.join(ROOT, rel)
-        if os.path.isdir(src):
-            shutil.copytree(src, os.path.join(bundle, rel))
-        else:
-            shutil.copy2(src, os.path.join(bundle, rel))
+    tools = {}
+    if plat['bundle_tools']:
+        git_archive = fetch(third['git'][args.platform], args.pip_cert)
+        log('extracting MinGit')
+        with zipfile.ZipFile(git_archive) as zf:
+            zf.extractall(os.path.join(bundle, 'git'))
+        if not args.make_exe or not os.path.isfile(args.make_exe):
+            raise SystemExit('GNU make not found: pass --make-exe (see lock/third-party.json)')
+        os.makedirs(os.path.join(bundle, 'tools'))
+        shutil.copy2(args.make_exe, os.path.join(bundle, 'tools', 'make.exe'))
+        tools = {'git': tool_version([os.path.join(bundle, 'git', 'cmd', 'git.exe'), '--version']),
+                 'git_archive': third['git'][args.platform]['name'],
+                 'git_sha256': third['git'][args.platform]['sha256'],
+                 'make': tool_version([os.path.join(bundle, 'tools', 'make.exe'), '--version']),
+                 'make_provenance': third['make'][args.platform]['provenance']}
+    else:
+        tools = {'note': 'git and make are taken from the system (not bundled on this platform)',
+                 'git_on_build_host': tool_version(['git', '--version']),
+                 'make_on_build_host': tool_version(['make', '--version'])}
+    os.makedirs(os.path.join(bundle, 'bin'))
+    for launcher in plat['launchers']:
+        shutil.copy2(os.path.join(ROOT, 'bin', launcher), os.path.join(bundle, 'bin', launcher))
+    for rel in ('install.py', plat['installer'], 'smoke.py'):
+        shutil.copy2(os.path.join(ROOT, rel), os.path.join(bundle, rel))
+    if not plat['bundle_tools']:
+        # Executable bits for the shell launchers (git keeps them, a Windows
+        # checkout does not; the tar archive records them).
+        for rel in [os.path.join('bin', l) for l in plat['launchers']] + [plat['installer']]:
+            path = os.path.join(bundle, rel)
+            os.chmod(path, os.stat(path).st_mode | 0o755)
 
     # 3: components
     commits = {}
@@ -239,23 +299,16 @@ def main(argv=None) -> int:
     # pip itself stays, but its own console scripts carry an absolute path; the
     # launchers call python -m, so nothing in Scripts/ is relied on.
 
-    # 5: version record, smoke, zip
-    def tool_version(cmd, cwd=None):
-        try:
-            return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=60).stdout.strip().splitlines()[0]
-        except Exception:  # noqa: BLE001
-            return 'unknown'
+    # 5: version record, smoke, archive
     version = {
         'name': name,
         'version': args.version,
+        'platform': args.platform,
         'built': time.strftime('%Y-%m-%dT%H:%M:%S'),
         'components': commits,
-        'runtime': {'python': tool_version([py, '--version']), 'archive': third['python']['name'],
-                    'sha256': third['python']['sha256']},
-        'tools': {'git': tool_version([os.path.join(bundle, 'git', 'cmd', 'git.exe'), '--version']),
-                  'git_archive': third['git']['name'], 'git_sha256': third['git']['sha256'],
-                  'make': tool_version([os.path.join(bundle, 'tools', 'make.exe'), '--version']),
-                  'make_provenance': third['make']['provenance']},
+        'runtime': {'python': tool_version([py, '--version']), 'archive': third['python'][args.platform]['name'],
+                    'sha256': third['python'][args.platform]['sha256']},
+        'tools': tools,
         'requirements_lock': os.path.basename(REQ_LOCK),
     }
     with open(os.path.join(bundle, 'VERSION.json'), 'w', encoding='utf-8') as fh:
@@ -267,14 +320,20 @@ def main(argv=None) -> int:
         if r.returncode != 0:
             raise SystemExit('smoke test failed; the bundle is left in dist/ for inspection')
     if not args.no_zip:
-        out = os.path.join(dist, name + '.zip')
-        log(f'zipping {out}')
+        ext = plat['archive']
+        out = os.path.join(dist, name + ext)
+        log(f'archiving {out}')
         if os.path.exists(out):
             os.remove(out)
-        shutil.make_archive(os.path.join(dist, name), 'zip', dist, name)
+        if ext == '.zip':
+            shutil.make_archive(os.path.join(dist, name), 'zip', dist, name)
+        else:
+            # tar keeps the executable bits of the launchers and the interpreter.
+            with tarfile.open(out, 'w:gz') as tf:
+                tf.add(bundle, arcname=name)
         with open(out + '.sha256', 'w', encoding='utf-8') as fh:
-            fh.write(f'{sha256(out)}  {name}.zip\n')
-        log(f'{name}.zip {os.path.getsize(out) // (1 << 20)} MB, sha256 in {name}.zip.sha256')
+            fh.write(f'{sha256(out)}  {name}{ext}\n')
+        log(f'{name}{ext} {os.path.getsize(out) // (1 << 20)} MB, sha256 in {name}{ext}.sha256')
     return 0
 
 

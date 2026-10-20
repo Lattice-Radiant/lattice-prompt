@@ -1,6 +1,6 @@
 """Register the bundled MCP servers with Claude Code and Claude Desktop.
 
-Run with the bundled Python (install.cmd does): it writes an `arch2code` and a
+Run with the bundled Python (install.cmd or install.sh does): it writes an `arch2code` and a
 `cortex-kb` entry, each pointing at a launcher in this bundle's bin
 directory, into ~/.claude.json (Claude Code, user scope) and into the Claude
 Desktop configuration, backing both files up first. --uninstall removes the
@@ -15,18 +15,24 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+WINDOWS = sys.platform == 'win32'
+EXT = '.cmd' if WINDOWS else ''          # Linux launchers are shell scripts without a suffix
 SERVERS = {
-    'arch2code': os.path.join(HERE, 'bin', 'a2c-mcp.cmd'),
-    'cortex-kb': os.path.join(HERE, 'bin', 'kb-mcp.cmd'),
+    'arch2code': os.path.join(HERE, 'bin', 'a2c-mcp' + EXT),
+    'cortex-kb': os.path.join(HERE, 'bin', 'kb-mcp' + EXT),
 }
 
 
 def config_files(desktop: bool):
     files = [os.path.join(os.path.expanduser('~'), '.claude.json')]
     if desktop:
-        appdata = os.environ.get('APPDATA')
-        if appdata:
-            files.append(os.path.join(appdata, 'Claude', 'claude_desktop_config.json'))
+        if WINDOWS:
+            appdata = os.environ.get('APPDATA')
+            if appdata:
+                files.append(os.path.join(appdata, 'Claude', 'claude_desktop_config.json'))
+        else:
+            config_home = os.environ.get('XDG_CONFIG_HOME') or os.path.join(os.path.expanduser('~'), '.config')
+            files.append(os.path.join(config_home, 'Claude', 'claude_desktop_config.json'))
     return files
 
 

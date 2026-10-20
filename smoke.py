@@ -2,7 +2,7 @@
 the bundle root (build/build.py runs it; a user can rerun it any time):
 
 - the interpreter and every package the two components import;
-- git and make from the bundle;
+- git and make: from the bundle on Windows, from the system on Linux;
 - the arch2code generator on a copy of examples/simple (db, then gen through
   make with the bundle's tools);
 - both MCP servers over stdio: initialize, list the tools, call one.
@@ -19,7 +19,11 @@ import sys
 import tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-PY = os.path.join(ROOT, 'python', 'python.exe')
+WINDOWS = sys.platform == 'win32'
+EXT = '.cmd' if WINDOWS else ''
+PY = os.path.join(ROOT, 'python', 'python.exe') if WINDOWS else os.path.join(ROOT, 'python', 'bin', 'python3')
+# git and make ship in the Windows bundle; on Linux the distribution's are used.
+BUNDLED_TOOLS = WINDOWS
 A2C = os.path.join(ROOT, 'components', 'cortex-a2c')
 KB = os.path.join(ROOT, 'components', 'cortex-kb')
 failures = []
@@ -33,9 +37,13 @@ def check(ok, message):
 
 def env():
     e = dict(os.environ)
-    e['PATH'] = os.pathsep.join([os.path.join(ROOT, 'python'), os.path.join(ROOT, 'python', 'Scripts'),
-                                 os.path.join(ROOT, 'git', 'cmd'), os.path.join(ROOT, 'git', 'usr', 'bin'),
-                                 os.path.join(ROOT, 'tools'), e.get('PATH', '')])
+    if WINDOWS:
+        first = [os.path.join(ROOT, 'python'), os.path.join(ROOT, 'python', 'Scripts'),
+                 os.path.join(ROOT, 'git', 'cmd'), os.path.join(ROOT, 'git', 'usr', 'bin'),
+                 os.path.join(ROOT, 'tools')]
+    else:
+        first = [os.path.join(ROOT, 'python', 'bin')]
+    e['PATH'] = os.pathsep.join(first + [e.get('PATH', '')])
     e['A2C_ROOT'] = A2C
     e['PYTHON'] = PY.replace('\\', '/')
     e.setdefault('CORTEX_KB_CACHE', os.path.join(tempfile.gettempdir(), 'lattice-prompt-smoke-kb'))
@@ -67,7 +75,10 @@ def check_runtime():
         r = run([tool] + args)
         check(r.returncode == 0, f'{tool}: {(r.stdout or r.stderr).splitlines()[0] if (r.stdout or r.stderr) else "no output"}')
         exe = shutil.which(tool, path=env()['PATH'])
-        check(exe and os.path.normcase(exe).startswith(os.path.normcase(ROOT)), f'{tool} comes from the bundle ({exe})')
+        if BUNDLED_TOOLS:
+            check(exe and os.path.normcase(exe).startswith(os.path.normcase(ROOT)), f'{tool} comes from the bundle ({exe})')
+        else:
+            check(bool(exe), f'{tool} found on the system ({exe})')
 
 
 def check_generator():
@@ -110,14 +121,14 @@ async def mcp_session(command, call):
 
 
 def check_servers():
-    a2c = os.path.join(ROOT, 'bin', 'a2c-mcp.cmd')
+    a2c = os.path.join(ROOT, 'bin', 'a2c-mcp' + EXT)
     try:
         names, text = asyncio.run(mcp_session(a2c, ('toolchain_detect', {})))
         check(len(names) >= 20 and 'generate' in names, f'arch2code MCP: {len(names)} tools')
         check('"make"' in text, 'arch2code MCP: toolchain_detect answers')
     except Exception as exc:  # noqa: BLE001
         check(False, f'arch2code MCP: {exc}')
-    kb = os.path.join(ROOT, 'bin', 'kb-mcp.cmd')
+    kb = os.path.join(ROOT, 'bin', 'kb-mcp' + EXT)
     try:
         names, text = asyncio.run(mcp_session(kb, ('kb_status', {})))
         check('kb_find_ips' in names, f'cortex-kb MCP: {len(names)} tools')

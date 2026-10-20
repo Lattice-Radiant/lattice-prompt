@@ -1,0 +1,5 @@
+#!/bin/sh
+# An interactive shell with the bundle's Python first on PATH and A2C_ROOT set.
+. "$(dirname "$0")/_env.sh"
+echo "lattice-prompt: python from $LP_ROOT; A2C_ROOT=$A2C_ROOT"
+exec "${SHELL:-/bin/sh}" -i

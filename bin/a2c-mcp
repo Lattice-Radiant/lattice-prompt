@@ -1,0 +1,4 @@
+#!/bin/sh
+# The arch2code MCP server over stdio, serving the bundled cortex-a2c.
+. "$(dirname "$0")/_env.sh"
+exec "$LP_ROOT/python/bin/python3" -m arch2code_mcp "$@"

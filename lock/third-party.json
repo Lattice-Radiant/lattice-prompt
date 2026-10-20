@@ -1,19 +1,31 @@
 {
   "python": {
-    "name": "cpython-3.12.15+20261013-x86_64-pc-windows-msvc-install_only.tar.gz",
-    "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.12.15%2B20261013-x86_64-pc-windows-msvc-install_only.tar.gz",
-    "sha256": "bbc902d4d187ac4914915bf538196a064b49109a33a104965b5164ced5b80a1e",
-    "note": "Relocatable CPython (python-build-standalone, the build uv manages); extracts to python/ with pip included."
+    "win64": {
+      "name": "cpython-3.12.15+20261013-x86_64-pc-windows-msvc-install_only.tar.gz",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.12.15%2B20261013-x86_64-pc-windows-msvc-install_only.tar.gz",
+      "sha256": "bbc902d4d187ac4914915bf538196a064b49109a33a104965b5164ced5b80a1e",
+      "note": "Relocatable CPython (python-build-standalone, the build uv manages); extracts to python/ with python.exe at its root and pip included."
+    },
+    "linux-x86_64": {
+      "name": "cpython-3.12.15+20261013-x86_64-unknown-linux-gnu-install_only.tar.gz",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.12.15%2B20261013-x86_64-unknown-linux-gnu-install_only.tar.gz",
+      "sha256": "5d546fc004fc2435fa142eb8f42ed8de5eb4725963dc22f7e6671014a80eb560",
+      "note": "Relocatable CPython for glibc 2.17 or newer (x86_64); extracts to python/ with bin/python3 and pip included."
+    }
   },
   "git": {
-    "name": "MinGit-2.56.0.2-64-bit.zip",
-    "url": "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.2/MinGit-2.56.0.2-64-bit.zip",
-    "sha256": "da35e72aa21c005a5a0d298cfbae110bc1609a815730ea0dde84b01a1b3cd3be",
-    "note": "Portable Git for Windows; git.exe under cmd/, the POSIX tools the makefiles use under usr/bin."
+    "win64": {
+      "name": "MinGit-2.56.0.2-64-bit.zip",
+      "url": "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.2/MinGit-2.56.0.2-64-bit.zip",
+      "sha256": "da35e72aa21c005a5a0d298cfbae110bc1609a815730ea0dde84b01a1b3cd3be",
+      "note": "Portable Git for Windows; git.exe under cmd/, the POSIX tools the makefiles use under usr/bin. On Linux the distribution's git is used."
+    }
   },
   "make": {
-    "name": "make.exe",
-    "version": "4.4.1",
-    "provenance": "GNU make 4.4.1 for Windows (ezwinports); taken from a winget install of ezwinports.make, or installed on the CI runner by the package manager and copied from PATH. Not downloadable from this network; the build takes --make-exe or the first make.exe on PATH."
+    "win64": {
+      "name": "make.exe",
+      "version": "4.4.1",
+      "provenance": "GNU make 4.4.1 for Windows (ezwinports); taken from a winget install of ezwinports.make, or installed on the CI runner by the package manager and copied from PATH. Not downloadable from this network; the build takes --make-exe or the first make.exe on PATH. On Linux the distribution's make is used."
+    }
   }
 }

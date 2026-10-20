@@ -1,12 +1,13 @@
 name: Release bundle
 
-# Builds lattice-prompt-<version>-win64.zip on a Windows runner from the pinned
-# components and the runtime inputs in lock/third-party.json, runs the smoke
-# test inside the bundle, and attaches the zip to a GitHub release when the
-# run was dispatched with publish=true. The two components are private
-# repositories of the same organisation, so the checkout needs a token that
-# can read them (secret COMPONENTS_TOKEN); the default GITHUB_TOKEN sees only
-# this repository.
+# Builds lattice-prompt-<version>-win64.zip on a Windows runner and
+# lattice-prompt-<version>-linux-x86_64.tar.gz on a Linux runner from the
+# pinned components and the runtime inputs in lock/third-party.json, runs the
+# smoke test inside each bundle, and attaches both archives to a GitHub
+# release when the run was dispatched with publish=true. The two components
+# are private repositories of the same organisation, so the checkout needs a
+# token that can read them (secret COMPONENTS_TOKEN); the default
+# GITHUB_TOKEN sees only this repository.
 
 on:
   workflow_dispatch:
@@ -15,17 +16,24 @@ on:
         description: 'Bundle version, for example 0.1.0'
         required: true
       publish:
-        description: 'Create a GitHub release with the zip'
+        description: 'Create a GitHub release with the archives'
         type: boolean
         default: false
 
 jobs:
   bundle:
-    runs-on: [windows-latest]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: win64
+            runner: windows-latest
+            archive: zip
+          - platform: linux-x86_64
+            runner: ubuntu-22.04
+            archive: tar.gz
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
-    defaults:
-      run:
-        shell: pwsh
     steps:
       - name: Checkout with the component pins
         uses: actions/checkout@v4
@@ -38,33 +46,53 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install GNU make for the bundle
+      - name: Install GNU make for the Windows bundle
+        if: matrix.platform == 'win64'
+        shell: pwsh
         run: choco install make --no-progress -y
 
-      - name: Build the bundle
+      - name: Build the bundle (Windows)
+        if: matrix.platform == 'win64'
+        shell: pwsh
         run: |
           $make = (Get-Command make).Source
-          python build/build.py --version "${{ inputs.version }}" --make-exe "$make"
+          python build/build.py --version "${{ inputs.version }}" --platform win64 --make-exe "$make"
+
+      - name: Build the bundle (Linux)
+        if: matrix.platform == 'linux-x86_64'
+        shell: bash
+        run: python build/build.py --version "${{ inputs.version }}" --platform linux-x86_64
 
       - name: Record what was built
-        run: Get-Content "dist/lattice-prompt-${{ inputs.version }}-win64/VERSION.json"
+        shell: bash
+        run: cat "dist/lattice-prompt-${{ inputs.version }}-${{ matrix.platform }}/VERSION.json"
 
       - name: Upload the bundle as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lattice-prompt-${{ inputs.version }}-win64
+          name: lattice-prompt-${{ inputs.version }}-${{ matrix.platform }}
           path: |
-            dist/lattice-prompt-${{ inputs.version }}-win64.zip
-            dist/lattice-prompt-${{ inputs.version }}-win64.zip.sha256
+            dist/lattice-prompt-${{ inputs.version }}-${{ matrix.platform }}.${{ matrix.archive }}
+            dist/lattice-prompt-${{ inputs.version }}-${{ matrix.platform }}.${{ matrix.archive }}.sha256
           if-no-files-found: error
 
+  publish:
+    if: ${{ inputs.publish }}
+    needs: bundle
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Collect both bundles
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
       - name: Publish a GitHub release
-        if: ${{ inputs.publish }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v${{ inputs.version }}" `
-            "dist/lattice-prompt-${{ inputs.version }}-win64.zip" `
-            "dist/lattice-prompt-${{ inputs.version }}-win64.zip.sha256" `
-            --title "lattice-prompt ${{ inputs.version }}" `
-            --notes-file "dist/lattice-prompt-${{ inputs.version }}-win64/VERSION.json"
+          ls -l dist
+          gh release create "v${{ inputs.version }}" dist/* \
+            --repo "${{ github.repository }}" \
+            --title "lattice-prompt ${{ inputs.version }}" \
+            --notes "Bundles for Windows x64 (zip) and Linux x86_64 (tar.gz); see VERSION.json inside each for the component commits and runtime versions."

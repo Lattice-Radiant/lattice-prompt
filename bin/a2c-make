@@ -1,0 +1,5 @@
+#!/bin/sh
+# GNU make with the bundle's Python first on PATH and A2C_ROOT set, for the
+# cortex-a2c make flow (make -C <project> db|gen|newmodule, make -C rundir run).
+. "$(dirname "$0")/_env.sh"
+exec make "$@"

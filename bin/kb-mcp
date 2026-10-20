@@ -1,0 +1,10 @@
+#!/bin/sh
+# The cortex-kb MCP server over stdio, serving the bundled knowledge base.
+# The session database and the pinned-source checkouts live under
+# CORTEX_KB_CACHE (default $XDG_CACHE_HOME/lattice-prompt/kb-cache).
+# --skip-unresolved keeps the server starting offline: designs whose linked
+# sources are not in the cache are marked unavailable instead of failing.
+. "$(dirname "$0")/_env.sh"
+mkdir -p "$CORTEX_KB_CACHE"
+exec "$LP_ROOT/python/bin/python3" -c "from kbtools.cli import main; main()" \
+    --repo "$LP_ROOT/components/cortex-kb" serve --skip-unresolved --cache-dir "$CORTEX_KB_CACHE" "$@"
