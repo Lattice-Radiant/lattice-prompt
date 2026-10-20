@@ -67,7 +67,9 @@ Windows:
 2. Run `install.cmd` (it runs `install.py` with the bundled Python). It registers
    `arch2code` and `cortex-kb` in `~/.claude.json` (Claude Code) and in the
    Claude Desktop configuration, backing both files up. `install.cmd --uninstall`
-   removes them.
+   removes them. `install.cmd --authoring` registers the knowledge-base server
+   with its authoring tools (`kb_author_*`), so Claude can add designs to the
+   knowledge base from a session; the default server is read-only.
 3. Optional, for native simulation (SystemC model and Verilator
    co-simulation): see [Native simulation](#native-simulation) below.
    Questa lint is found automatically under `C:\lscc` when Radiant is
@@ -79,7 +81,8 @@ Linux:
    `git` and `make` are installed (`apt install git make` or the equivalent).
 2. Run `./install.sh` from the extracted directory. It registers the same two
    servers in `~/.claude.json` and in `$XDG_CONFIG_HOME/Claude/claude_desktop_config.json`
-   (default `~/.config`). `./install.sh --uninstall` removes them.
+   (default `~/.config`). `./install.sh --uninstall` removes them;
+   `./install.sh --authoring` enables the knowledge-base authoring tools as above.
 3. Optional, for native simulation: see [Native simulation](#native-simulation)
    below. Questa from the Radiant install.
 

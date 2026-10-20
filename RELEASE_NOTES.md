@@ -19,8 +19,10 @@ runtime and tool versions that were bundled.
 Windows: unzip anywhere, run `install.cmd`. Linux: `tar xzf` anywhere, run
 `./install.sh`. Either registers the `arch2code` and `cortex-kb` MCP servers
 with Claude Code (`~/.claude.json`) and Claude Desktop, backing the files up;
-`--uninstall` removes the entries. `python smoke.py` with the bundled
-interpreter reruns the release checks.
+`--uninstall` removes the entries; `--authoring` registers the knowledge-base
+server with its authoring tools, so Claude can add designs to the knowledge
+base from a session. `python smoke.py` with the bundled interpreter reruns
+the release checks.
 
 ## Native simulation (optional, not bundled)
 

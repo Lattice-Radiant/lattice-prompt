@@ -4,7 +4,9 @@ Run with the bundled Python (install.cmd or install.sh does): it writes an `arch
 `cortex-kb` entry, each pointing at a launcher in this bundle's bin
 directory, into ~/.claude.json (Claude Code, user scope) and into the Claude
 Desktop configuration, backing both files up first. --uninstall removes the
-two entries. Nothing else on the machine is touched.
+two entries. --authoring registers cortex-kb with its authoring tools
+(kb_author_*), so Claude can add designs to the knowledge base from a session;
+without it the server is read-only. Nothing else on the machine is touched.
 """
 
 import argparse
@@ -57,7 +59,11 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='register the lattice-prompt MCP servers')
     parser.add_argument('--uninstall', action='store_true')
     parser.add_argument('--no-desktop', action='store_true', help='Claude Code only')
+    parser.add_argument('--authoring', action='store_true',
+                        help='start the cortex-kb server with its authoring tools (kb_author_*), so Claude can '
+                             'add designs to the knowledge base; the default server is read-only')
     args = parser.parse_args(argv)
+    server_args = {'cortex-kb': ['--authoring'] if args.authoring else []}
 
     for name, launcher in SERVERS.items():
         if not args.uninstall and not os.path.isfile(launcher):
@@ -73,9 +79,9 @@ def main(argv=None) -> int:
             print(f'{path}: removed {removed or "nothing"}')
             continue
         for name, launcher in SERVERS.items():
-            servers[name] = {'command': launcher, 'args': []}
+            servers[name] = {'command': launcher, 'args': server_args.get(name, [])}
         save(path, data)
-        print(f'{path}: registered {list(SERVERS)}')
+        print(f'{path}: registered {list(SERVERS)}' + (' (cortex-kb with authoring tools)' if args.authoring else ''))
     return 0
 
 
