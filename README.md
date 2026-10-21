@@ -85,7 +85,14 @@ Windows:
    without the dialogue. Later, `bin\kb-skills list`, `bin\kb-skills install
    --all` and `bin\kb-skills uninstall` manage them; `install.cmd --uninstall`
    removes them too.
-3. Optional, for native simulation (SystemC model and Verilator
+3. Start a project: `bin\new-project.cmd <directory>` copies the project
+   template (`templates\project`: Makefiles, the agent-rules appendix with the
+   flow routing and knowledge-base rules, an empty `design\` for the flow's
+   records, `.mcp.json.example`), names the project after the directory and
+   initialises Git; `--submodule` pins cortex-a2c inside the project instead of
+   building with the bundle's copy. Then `bin\a2c-make agents-setup` in the
+   project and open it in Claude Code.
+4. Optional, for native simulation (SystemC model and Verilator
    co-simulation): see [Native simulation](#native-simulation) below.
    Questa lint is found automatically under `C:\lscc` when Radiant is
    installed. Neither is part of the bundle.
@@ -100,7 +107,9 @@ Linux:
    `./install.sh --read-only` leaves out the knowledge-base authoring tools as above.
    The same skills dialogue runs (`--skills all|select|none`), installing into
    `~/.claude/skills`; `bin/kb-skills` manages them later.
-3. Optional, for native simulation: see [Native simulation](#native-simulation)
+3. Start a project: `bin/new-project <directory>` (as above), then
+   `bin/a2c-make agents-setup` in the project.
+4. Optional, for native simulation: see [Native simulation](#native-simulation)
    below. Questa from the Radiant install.
 
 On either platform `python smoke.py` (with the bundled interpreter) reruns

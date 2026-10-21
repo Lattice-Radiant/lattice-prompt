@@ -1,0 +1,31 @@
+{
+  "_comment": "The five MCP servers of the integrated flow registered side by side for this project. The lattice-prompt installer registers arch2code and cortex-kb at user scope, so a project needs this file only to add lattice-cortex and the Radiant servers or to pin different commands. Replace <bundle> with the extracted bundle directory and <...> paths with the local installations; the file is workstation-specific, keep it out of version control.",
+  "mcpServers": {
+    "arch2code": {
+      "command": "<bundle>\\bin\\a2c-mcp.cmd",
+      "args": []
+    },
+    "cortex-kb": {
+      "command": "<bundle>\\bin\\kb-mcp.cmd",
+      "args": ["--authoring"]
+    },
+    "lattice-cortex": {
+      "command": "<checkout of cortex-mcp>\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "lattice_cortex.server"]
+    },
+    "lattice-radiant-mcp": {
+      "command": "<lattice-radiant-mcp bundle>\\.venv_lattice-radiant-mcp-1.1.0\\Scripts\\python.exe",
+      "args": ["-m", "radiant_mcp"],
+      "env": {
+        "TIMING_CLOSURE_MERGE_ENABLED": "1",
+        "CORTEX_TIMING_CLOSURE_MCP_SURFACE": "internal",
+        "CORTEX_TIMING_CLOSURE_MCP_RELEASE_TIER": "full",
+        "CORTEX_TIMING_CLOSURE_MCP_ENABLED_TOOLS": "perceive_timing,list_levers,check_plan,search_radiant_docs,propose_levers,get_capability_probe_kit,list_toolchain_capabilities,get_primitive_instantiation_template,list_primitive_topologies,lint_rtl,lint_constraints,verify_non_regression,bind_lever"
+      }
+    },
+    "radiant": {
+      "command": "<python environment with the radiant server>\\python.exe",
+      "args": ["-m", "radiant_mcp"]
+    }
+  }
+}

@@ -59,14 +59,14 @@ PLATFORMS = {
     'win64': {
         'python': ('python.exe',),
         'bundle_tools': True,
-        'launchers': ('_env.cmd', 'a2c-mcp.cmd', 'kb-mcp.cmd', 'kb-skills.cmd', 'a2c-make.cmd', 'a2c-shell.cmd'),
+        'launchers': ('_env.cmd', 'a2c-mcp.cmd', 'kb-mcp.cmd', 'kb-skills.cmd', 'a2c-make.cmd', 'a2c-shell.cmd', 'new-project.cmd'),
         'installer': 'install.cmd',
         'archive': '.zip',
     },
     'linux-x86_64': {
         'python': ('bin', 'python3'),
         'bundle_tools': False,
-        'launchers': ('_env.sh', 'a2c-mcp', 'kb-mcp', 'kb-skills', 'a2c-make', 'a2c-shell'),
+        'launchers': ('_env.sh', 'a2c-mcp', 'kb-mcp', 'kb-skills', 'a2c-make', 'a2c-shell', 'new-project'),
         'installer': 'install.sh',
         'archive': '.tar.gz',
     },
@@ -262,6 +262,9 @@ def main(argv=None) -> int:
         shutil.copy2(os.path.join(ROOT, 'bin', launcher), os.path.join(bundle, 'bin', launcher))
     for rel in ('install.py', plat['installer'], 'smoke.py'):
         shutil.copy2(os.path.join(ROOT, rel), os.path.join(bundle, rel))
+    # the project template (templates/project) and the script that instantiates it
+    shutil.copytree(os.path.join(ROOT, 'templates'), os.path.join(bundle, 'templates'),
+                    ignore=shutil.ignore_patterns('__pycache__'))
     if not plat['bundle_tools']:
         # Executable bits for the shell launchers (git keeps them, a Windows
         # checkout does not; the tar archive records them).

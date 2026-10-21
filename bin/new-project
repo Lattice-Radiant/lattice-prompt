@@ -1,0 +1,6 @@
+#!/bin/sh
+# Create an arch2code project of the integrated flow from the bundle's template:
+#   new-project <directory> [--name <project>] [--submodule]
+# Then: a2c-make agents-setup in the project; copy .mcp.json.example to .mcp.json.
+. "$(dirname "$0")/_env.sh"
+exec "$LP_ROOT/python/bin/python3" "$LP_ROOT/templates/new_project.py" "$@"

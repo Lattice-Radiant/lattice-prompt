@@ -1,0 +1,105 @@
+# design/intent.yaml - the intent record of the integrated flow (stage 2).
+# Written from the intake answers, confirmed at Gate 1, then frozen: a later
+# change of intent reopens Gate 1 and is noted in decisions.md.
+#
+# Pilot of the Agentic FPGA System Design Architecture v1.2, decision D14:
+# the captured cpnx_gsrd design is the donor SoC; one custom arch2code block
+# with registers in the custom window. Intake answers taken from the design
+# document (sections 7, 8, 16 and decision D14) and the knowledge-base task
+# var_gsrd_add_gpio_timer; every value the document does not give is listed
+# under intent.assumptions and is a Gate 1 question.
+entry:
+  mode: propel_soc_extension
+  starts_at_stage: 1
+  delta_of: cpnx_gsrd@1.0.0      # knowledge-base entry (served commit 8594fc2fc96d at preflight; main beaf5b5f)
+  derived_records: [decomposition, decisions]   # the SoC table and the donor's connectivity are derived from the capture, marked derived
+  established_with: []           # filled at stage 3: kb_get_entry, kb_get_hierarchy, kb_get_constraints, kb_get_flow, kb_get_registers on cpnx_gsrd; propel_ingest_project, propel_map_donor_connectivity on the donor project
+
+intent:
+  title: gsrd_user_timer
+  summary: >
+    Extend the CertusPro-NX GSRD SoC (donor cpnx_gsrd) with one custom arch2code block,
+    userTimer, placed in the custom-logic window behind the SoC's APB segment: a 16-bit
+    general-purpose I/O register set and a free-running timer-counter with a compare
+    interrupt. The RISC-V core configures the block, toggles the GPIO outputs, reads the
+    GPIO inputs and measures a timer interval; the result is printed on the existing UART.
+  version_1_scope:
+    - 16-bit GPIO: direction, output, input, interrupt-on-change registers
+    - 32-bit free-running timer with prescaler, compare value, interrupt flag and enable
+    - APB target in the custom window; one interrupt line to the SoC interrupt controller
+    - firmware application test that toggles GPIO and measures a timer interval over the UART
+  later:
+    - PWM output mode of the timer
+    - second timer channel
+    - RTOS (FreeRTOS through the Propel SDK) stays out of scope for the pilot (design document section 11)
+  assumptions:
+    - The custom block is implemented in arch2code (hand-written RTL inside generated regions), not taken from the IP Catalog gpio and gp_timer cores, so the pilot exercises the custom window; the catalog cores are the knowledge-base reference for the register layout and the firmware driver shape (stage 3).
+    - The custom-logic bus is APB through the donor's axi4_to_apb_bridge (no AHB-Lite interface in arch2code; decisions.md stage 0 assumption).
+    - The register map of userTimer follows the catalog gpio 1.8.0 and gp_timer register layouts where they fit, so the firmware driver shape carries over; every register carries an evidence pointer to the catalog memory map it was taken from, and a register with no such source is unverified.
+    - The window base and size come from ip_get_address_spaces on the donor at stage 3 (not set here).
+
+external_interfaces:
+  - name: gpio_io
+    protocol: gpio
+    role: controller
+    width: 16
+    rate: static (board LEDs and push buttons of the evaluation board; pins from the board entry at stage 9)
+  - name: userBus
+    protocol: apb
+    role: target
+    width: 32
+    rate: SoC APB clock (donor value, stage 3)
+  - name: irq
+    protocol: interrupt
+    role: transmitter
+    width: 1
+    rate: level
+
+performance:
+  throughput: {}
+  latency_bounds: {}
+  fixed_clocks_mhz: {}           # the donor fixes the SoC clocks; read at stage 3 from kb_get_constraints
+  clock_domains_expected: 1      # the custom block lives in the SoC's APB clock domain
+
+software:
+  processor: soft_core
+  control_bus: apb
+  needs: [configure, start_stop, status, interrupt_on_compare, interrupt_on_gpio_change]
+  soc:
+    donor: cpnx_gsrd@1.0.0
+    custom_window:
+      base: null                 # USER_WINDOW_BASE, from ip_get_address_spaces at stage 3
+      size: null                 # USER_WINDOW_SIZE
+
+reuse:
+  mandated_ips: []
+  known_designs: [cpnx_gsrd]
+  exclusions: []
+
+device:
+  mode: board_aware
+  family: certuspro_nx
+  device: LFCPNX-100-9LFG672I
+  board: certuspro_nx_evaluation_board
+
+end_point: hardware
+
+execution:
+  default: windows_workstation
+  per_stage: {}                  # linux_lsf for stages 6 and 10 when the gateway is registered (open item: LSF gateway registration not done in P0)
+
+verification:
+  first_simulation_proves: [register_access]   # the SoC wrapper stub (bus-master transactor) reads every userTimer register after reset and writes and reads back the writable ones
+  hand_written_rtl_expected: [userTimer]
+  regression_wanted: true
+  smoke_test: firmware application test over the UART: GPIO toggle observed on the board LEDs, timer interval within 1 percent of the programmed value
+
+constraints:
+  resource_budget: null          # the donor's flow results are the baseline (kb_get_flow); resource_ratio_max 1.15 in the harness task
+  power: null
+  security: null
+  export_control: none
+
+gate_1:
+  approved_by: null              # team identifier; pending
+  date: null
