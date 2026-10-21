@@ -299,6 +299,25 @@ def main(argv=None) -> int:
     # pip itself stays, but its own console scripts carry an absolute path; the
     # launchers call python -m, so nothing in Scripts/ is relied on.
 
+    # 4b: distribution filter on the bundled knowledge base (section 10 of its
+    # design document): entries above the policy's classification limit and
+    # export-controlled ones are removed, vendored sources withheld; the clone
+    # gets a filter commit so it stays clean for the server, and the record
+    # goes into VERSION.json.
+    log('filtering the knowledge base for distribution')
+    filt = subprocess.run([py, '-c', 'from kbtools.cli import main; main()', '--repo', kb, 'export-bundle', '--json'],
+                          capture_output=True, text=True, encoding='utf-8', errors='replace')
+    if filt.returncode != 0:
+        raise SystemExit(f'export-bundle failed:\n{filt.stdout}\n{filt.stderr}')
+    distribution = json.loads(filt.stdout)
+    rec = distribution.get('record', {})
+    log(f"knowledge base: {rec.get('kept')} entries kept, {len(rec.get('removed', []))} removed, "
+        f"{len(rec.get('stripped', []))} stripped of sources (classification <= {rec.get('max_classification')})")
+    commits['cortex-kb'] = {'source': commits['cortex-kb'], 'bundle': distribution.get('committed'),
+                            'filter': {k: rec.get(k) for k in ('max_classification', 'include_restricted', 'vendored_sources', 'kept')},
+                            'removed': [i['path'] for i in rec.get('removed', [])],
+                            'stripped': [i['path'] for i in rec.get('stripped', [])]}
+
     # 5: version record, smoke, archive
     version = {
         'name': name,

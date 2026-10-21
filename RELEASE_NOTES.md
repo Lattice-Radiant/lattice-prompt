@@ -12,7 +12,12 @@ every package they need. A user's own Python, if any, plays no part.
 - `.sha256` files for both.
 
 `VERSION.json` inside each bundle names the component commits and the
-runtime and tool versions that were bundled.
+runtime and tool versions that were bundled. The knowledge base inside a
+bundle is a filtered checkout: entries classified above `internal` and
+export-controlled entries are removed, and vendored sources are withheld
+(those designs are carried as derived knowledge only). `VERSION.json`
+records the filter, the removed entries and the knowledge-base commit the
+bundle was filtered from.
 
 ## Install
 

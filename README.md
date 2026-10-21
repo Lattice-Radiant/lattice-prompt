@@ -23,8 +23,12 @@ lattice-prompt-<version>-win64/
   tools/         GNU make
   components/
     cortex-a2c/  git checkout at the pinned commit
-    cortex-kb/   git checkout at the pinned commit (its sources cache is
-                 created on first start under %LOCALAPPDATA%\lattice-prompt)
+    cortex-kb/   git checkout at the pinned commit, filtered for distribution
+                 (entries above the policy's classification limit and
+                 export-controlled ones removed, vendored sources withheld;
+                 see VERSION.json and the checkout's distribution.json); its
+                 sources cache is created on first start under
+                 %LOCALAPPDATA%\lattice-prompt
   bin/
     a2c-mcp.cmd      the arch2code MCP server (stdio)
     kb-mcp.cmd       the cortex-kb MCP server (stdio)
