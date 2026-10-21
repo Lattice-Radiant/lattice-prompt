@@ -59,14 +59,14 @@ PLATFORMS = {
     'win64': {
         'python': ('python.exe',),
         'bundle_tools': True,
-        'launchers': ('_env.cmd', 'a2c-mcp.cmd', 'kb-mcp.cmd', 'a2c-make.cmd', 'a2c-shell.cmd'),
+        'launchers': ('_env.cmd', 'a2c-mcp.cmd', 'kb-mcp.cmd', 'kb-skills.cmd', 'a2c-make.cmd', 'a2c-shell.cmd'),
         'installer': 'install.cmd',
         'archive': '.zip',
     },
     'linux-x86_64': {
         'python': ('bin', 'python3'),
         'bundle_tools': False,
-        'launchers': ('_env.sh', 'a2c-mcp', 'kb-mcp', 'a2c-make', 'a2c-shell'),
+        'launchers': ('_env.sh', 'a2c-mcp', 'kb-mcp', 'kb-skills', 'a2c-make', 'a2c-shell'),
         'installer': 'install.sh',
         'archive': '.tar.gz',
     },

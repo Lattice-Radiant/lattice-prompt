@@ -171,6 +171,14 @@ def check_servers():
               f'cortex-kb MCP: kb_status answers ({str(text)[:80]})')
     except Exception as exc:  # noqa: BLE001
         check(False, f'cortex-kb MCP: {exc}')
+    # the skills launcher lists the knowledge base's reviewed skills (design skills)
+    r = run([os.path.join(ROOT, 'bin', 'kb-skills' + EXT), 'list', '--json'])
+    ok = r.returncode == 0 and r.stdout.strip().startswith(('[', '{'))
+    try:
+        count = len(json.loads(r.stdout)) if ok else 0
+    except json.JSONDecodeError:
+        ok, count = False, 0
+    check(ok, f'kb-skills list answers ({count} reviewed skill(s))')
 
 
 def main() -> int:

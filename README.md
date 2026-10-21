@@ -28,6 +28,7 @@ lattice-prompt-<version>-win64/
   bin/
     a2c-mcp.cmd      the arch2code MCP server (stdio)
     kb-mcp.cmd       the cortex-kb MCP server (stdio)
+    kb-skills.cmd    list, install and remove the knowledge base's design skills
     a2c-make.cmd     make with the bundle's tools on PATH
     a2c-shell.cmd    a command prompt with the bundle's tools on PATH
   install.cmd    registers both servers with Claude Code and Claude Desktop
@@ -45,7 +46,7 @@ lattice-prompt-<version>-linux-x86_64/
   components/    as on Windows (the knowledge base cache goes under
                  $XDG_CACHE_HOME/lattice-prompt, default ~/.cache)
   bin/
-    a2c-mcp, kb-mcp, a2c-make, a2c-shell   POSIX sh launchers
+    a2c-mcp, kb-mcp, kb-skills, a2c-make, a2c-shell   POSIX sh launchers
   install.sh     registers both servers with Claude Code and Claude Desktop
   smoke.py, VERSION.json
 ```
@@ -70,6 +71,14 @@ Windows:
    removes them. `install.cmd --authoring` registers the knowledge-base server
    with its authoring tools (`kb_author_*`), so Claude can add designs to the
    knowledge base from a session; the default server is read-only.
+   The installer then lists the knowledge base's reviewed **design skills**
+   (procedures for changing a design, in the Claude Code skill format) and
+   asks whether to install all, a selection, or none into
+   `%USERPROFILE%\.claude\skills` as `<design>-<skill>`; `--skills all`,
+   `--skills select --skills-select design/skill,...` or `--skills none` answer
+   without the dialogue. Later, `bin\kb-skills list`, `bin\kb-skills install
+   --all` and `bin\kb-skills uninstall` manage them; `install.cmd --uninstall`
+   removes them too.
 3. Optional, for native simulation (SystemC model and Verilator
    co-simulation): see [Native simulation](#native-simulation) below.
    Questa lint is found automatically under `C:\lscc` when Radiant is
@@ -83,6 +92,8 @@ Linux:
    servers in `~/.claude.json` and in `$XDG_CONFIG_HOME/Claude/claude_desktop_config.json`
    (default `~/.config`). `./install.sh --uninstall` removes them;
    `./install.sh --authoring` enables the knowledge-base authoring tools as above.
+   The same skills dialogue runs (`--skills all|select|none`), installing into
+   `~/.claude/skills`; `bin/kb-skills` manages them later.
 3. Optional, for native simulation: see [Native simulation](#native-simulation)
    below. Questa from the Radiant install.
 

@@ -21,8 +21,11 @@ Windows: unzip anywhere, run `install.cmd`. Linux: `tar xzf` anywhere, run
 with Claude Code (`~/.claude.json`) and Claude Desktop, backing the files up;
 `--uninstall` removes the entries; `--authoring` registers the knowledge-base
 server with its authoring tools, so Claude can add designs to the knowledge
-base from a session. `python smoke.py` with the bundled interpreter reruns
-the release checks.
+base from a session. The installer then offers the knowledge base's reviewed
+design skills (procedures for changing a design, Claude Code skill format):
+all, a selection, or none, into the user's Claude Code skills folder
+(`--skills all|select|none` without the dialogue; `bin/kb-skills` later).
+`python smoke.py` with the bundled interpreter reruns the release checks.
 
 ## Native simulation (optional, not bundled)
 
