@@ -106,4 +106,29 @@ jobs:
           gh release create "v${{ inputs.version }}" dist/* \
             --repo "${{ github.repository }}" \
             --title "lattice-prompt ${{ inputs.version }}" \
+            --latest \
             --notes-file notes.md
+
+      - name: Mark the previous release as superseded
+        # The new release is "Latest"; every older release gets a banner at the
+        # top of its notes pointing at the newest one, so a user who lands on
+        # an old release page reaches the current bundle in one click.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          new="v${{ inputs.version }}"
+          url="https://github.com/${{ github.repository }}/releases/tag/$new"
+          for tag in $(gh release list --repo "${{ github.repository }}" --exclude-drafts --limit 50 --json tagName -q '.[].tagName'); do
+            [ "$tag" = "$new" ] && continue
+            gh release view "$tag" --repo "${{ github.repository }}" --json body -q .body > old.md
+            if grep -q "^> \*\*Superseded" old.md; then
+              # refresh an existing banner to point at the newest release
+              sed -i "1,2d" old.md
+            fi
+            { echo "> **Superseded.** This release is old; use the latest release, [$new]($url)."
+              echo
+              cat old.md
+            } > updated.md
+            gh release edit "$tag" --repo "${{ github.repository }}" --notes-file updated.md
+            echo "marked $tag as superseded by $new"
+          done
