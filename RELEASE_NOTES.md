@@ -24,13 +24,40 @@ bundle was filtered from.
 Windows: unzip anywhere, run `install.cmd`. Linux: `tar xzf` anywhere, run
 `./install.sh`. Either registers the `arch2code` and `cortex-kb` MCP servers
 with Claude Code (`~/.claude.json`) and Claude Desktop, backing the files up;
-`--uninstall` removes the entries; `--authoring` registers the knowledge-base
-server with its authoring tools, so Claude can add designs to the knowledge
-base from a session. The installer then offers the knowledge base's reviewed
+`--uninstall` removes the entries. The knowledge-base server is registered
+with its authoring tools by default, so Claude can add to the knowledge base
+as a design progresses (the tools write only to the local checkout until a
+pull request); `--read-only` registers it without them for a shared machine.
+The installer then offers the knowledge base's reviewed
 design skills (procedures for changing a design, Claude Code skill format):
 all, a selection, or none, into the user's Claude Code skills folder
 (`--skills all|select|none` without the dialogue; `bin/kb-skills` later).
 `python smoke.py` with the bundled interpreter reruns the release checks.
+
+## Starting a project
+
+`bin/new-project <directory>` (`bin\new-project.cmd` on Windows) creates an
+arch2code project of the integrated design flow from `templates/project`:
+Makefiles that build with the bundle's arch2code (or with `--submodule`, a
+pinned cortex-a2c inside the project), the agent-rules appendix with the flow
+routing and the knowledge-base rules, an empty `design/` for the flow's records
+(intent, decomposition, decisions, IP bindings, gaps, hand-off), and
+`.mcp.json.example` for the remaining servers. Then `bin/a2c-make agents-setup`
+in the project and open it in Claude Code; the `design-from-intent` skill runs
+the intake. `docs/integrated_flow_overview.pptx` in the repository presents
+the flow.
+
+## New in this release
+
+- arch2code: the `design-from-intent` and `implement-from-handoff` skills of
+  the integrated flow with the design record templates; the register-access
+  test (`regAccess: true` on an APB master stub, `reg_access_plan` and
+  `reg_access_test` tools) and the `evidence` and `unverified` register keys;
+  server precedence in the generated AGENTS.md.
+- cortex-kb: register knowledge from IP-XACT memory maps and C headers
+  (`kb_get_registers`, each register cited to file and line); the pilot
+  evaluation task and the integrated-flow scorer measures; corpus pull
+  requests with derived-only changes merge automatically.
 
 ## Native simulation (optional, not bundled)
 
