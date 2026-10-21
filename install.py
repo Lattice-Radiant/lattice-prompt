@@ -4,9 +4,11 @@ Run with the bundled Python (install.cmd or install.sh does): it writes an `arch
 `cortex-kb` entry, each pointing at a launcher in this bundle's bin
 directory, into ~/.claude.json (Claude Code, user scope) and into the Claude
 Desktop configuration, backing both files up first. --uninstall removes the
-two entries and the skills a previous run installed. --authoring registers
-cortex-kb with its authoring tools (kb_author_*), so Claude can add designs
-to the knowledge base from a session; without it the server is read-only.
+two entries and the skills a previous run installed. cortex-kb is registered
+with its authoring tools (kb_author_*) by default, so Claude can add to the
+knowledge base as a design progresses; the tools write only to the local
+checkout until a pull request. --read-only registers the server without them
+(a shared machine or a server other people call).
 
 Skills: the knowledge base carries reviewed procedures for changing its
 designs (design skills) in the Claude Code skill format. --skills all|select|none
@@ -140,9 +142,12 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='register the lattice-prompt MCP servers and install skills')
     parser.add_argument('--uninstall', action='store_true')
     parser.add_argument('--no-desktop', action='store_true', help='Claude Code only')
-    parser.add_argument('--authoring', action='store_true',
+    parser.add_argument('--authoring', action='store_true', default=True,
                         help='start the cortex-kb server with its authoring tools (kb_author_*), so Claude can '
-                             'add designs to the knowledge base; the default server is read-only')
+                             'add to the knowledge base as the design progresses (the default for a personal '
+                             'session; the tools write only to the local checkout until a pull request)')
+    parser.add_argument('--read-only', dest='authoring', action='store_false',
+                        help='register the cortex-kb server without the authoring tools (a shared machine or server)')
     parser.add_argument('--skills', choices=['all', 'select', 'none'], default=None,
                         help='install the knowledge base\'s reviewed Claude Code skills: all, a selection '
                              '(--skills-select), or none; without the option a console asks')
@@ -166,7 +171,7 @@ def main(argv=None) -> int:
         for name, launcher in SERVERS.items():
             servers[name] = {'command': launcher, 'args': server_args.get(name, [])}
         save(path, data)
-        print(f'{path}: registered {list(SERVERS)}' + (' (cortex-kb with authoring tools)' if args.authoring else ''))
+        print(f'{path}: registered {list(SERVERS)}' + (' (cortex-kb with authoring tools)' if args.authoring else ' (cortex-kb read-only)'))
     if args.uninstall:
         skills = _kb_skills()
         if skills is not None:

@@ -72,9 +72,11 @@ Windows:
 2. Run `install.cmd` (it runs `install.py` with the bundled Python). It registers
    `arch2code` and `cortex-kb` in `~/.claude.json` (Claude Code) and in the
    Claude Desktop configuration, backing both files up. `install.cmd --uninstall`
-   removes them. `install.cmd --authoring` registers the knowledge-base server
-   with its authoring tools (`kb_author_*`), so Claude can add designs to the
-   knowledge base from a session; the default server is read-only.
+   removes them. The knowledge-base server is registered with its authoring
+   tools (`kb_author_*`) by default, so Claude can add to the knowledge base as
+   a design progresses; those tools write only to the local checkout until a
+   pull request is opened. `install.cmd --read-only` registers it without them
+   (a shared machine, or a server other people call).
    The installer then lists the knowledge base's reviewed **design skills**
    (procedures for changing a design, in the Claude Code skill format) and
    asks whether to install all, a selection, or none into
@@ -95,7 +97,7 @@ Linux:
 2. Run `./install.sh` from the extracted directory. It registers the same two
    servers in `~/.claude.json` and in `$XDG_CONFIG_HOME/Claude/claude_desktop_config.json`
    (default `~/.config`). `./install.sh --uninstall` removes them;
-   `./install.sh --authoring` enables the knowledge-base authoring tools as above.
+   `./install.sh --read-only` leaves out the knowledge-base authoring tools as above.
    The same skills dialogue runs (`--skills all|select|none`), installing into
    `~/.claude/skills`; `bin/kb-skills` manages them later.
 3. Optional, for native simulation: see [Native simulation](#native-simulation)
