@@ -1,8 +1,9 @@
 # <project>: an arch2code project of the integrated FPGA design flow.
 #
-#   make agents-setup   deploy the arch2code skills (and Pro's run-tandem when present) into
-#                       .claude/skills etc. and write AGENTS.md / CLAUDE.md
-#                       (arch2code's template + this project's AGENTS.append.md)
+#   make agents-setup   export the knowledge-base skills this project names (make kb-skills),
+#                       deploy them with the arch2code skills (and Pro's run-tandem when present)
+#                       into .claude/skills, .cursor, .gemini, .opencode, .agents, and write
+#                       AGENTS.md / CLAUDE.md (arch2code's template + the AGENTS.append.md files)
 #   make preflight      which arch2code this project builds with; the rest of stage 0 runs
 #                       through the MCP servers (kb_status, toolchain_detect, ...)
 #   make db / gen / ... the arch2code targets once the project YAML exists (stage 5)
@@ -11,6 +12,13 @@
 # or as plain `make` with a development checkout: see include/make/shared.mk.
 REPO_ROOT = $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
 include $(REPO_ROOT)/include/make/shared.mk
+
+# Export the knowledge-base skills this project names, then deploy every skill set.
+# A knowledge base that is not reachable is reported, not fatal: the arch2code skills still deploy.
+.PHONY: kb-skills
+kb-skills:
+	-$(KB_SKILLS) export-dir $(REPO_ROOT)/.kb/rules --project $(REPO_ROOT)
+agents-setup: kb-skills
 
 .PHONY: preflight
 preflight:

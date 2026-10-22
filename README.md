@@ -77,21 +77,26 @@ Windows:
    a design progresses; those tools write only to the local checkout until a
    pull request is opened. `install.cmd --read-only` registers it without them
    (a shared machine, or a server other people call).
-   The installer then lists the knowledge base's reviewed **design skills**
-   (procedures for changing a design, in the Claude Code skill format) and
-   asks whether to install all, a selection, or none into
-   `%USERPROFILE%\.claude\skills` as `<design>-<skill>`; `--skills all`,
-   `--skills select --skills-select design/skill,...` or `--skills none` answer
-   without the dialogue. Later, `bin\kb-skills list`, `bin\kb-skills install
-   --all` and `bin\kb-skills uninstall` manage them; `install.cmd --uninstall`
-   removes them too.
+   The knowledge base's reviewed **design skills** (procedures for changing a
+   design) are not copied by the installer: every reviewed skill is an MCP
+   prompt of the knowledge-base server (`/mcp__cortex-kb__<design>-<skill>` in
+   Claude Code, listed the same way by Cursor and the other MCP clients, always
+   the current version), and a project gets them deployed into every tool's
+   skills folder by `bin\a2c-make agents-setup` (see "Start a project").
+   `bin\kb-skills list` shows them; `bin\kb-skills install --all` remains as a
+   fallback copy into `%USERPROFILE%\.claude\skills` for a session without a
+   project.
 3. Start a project: `bin\new-project.cmd <directory>` copies the project
    template (`templates\project`: Makefiles, the agent-rules appendix with the
    flow routing and knowledge-base rules, an empty `design\` for the flow's
    records, `.mcp.json.example`), names the project after the directory and
    initialises Git; `--submodule` pins cortex-a2c inside the project instead of
    building with the bundle's copy. Then `bin\a2c-make agents-setup` in the
-   project and open it in Claude Code.
+   project: it exports the knowledge base's reviewed skills for the designs the
+   project's `design\intent.yaml` names into `.kb\rules` and deploys them with
+   the arch2code skills into `.claude\skills`, `.cursor`, `.gemini`, `.opencode`
+   and `.agents`; rerun it after a knowledge-base update. Then open the project
+   in Claude Code.
 4. Optional, for native simulation (SystemC model and Verilator
    co-simulation): see [Native simulation](#native-simulation) below.
    Questa lint is found automatically under `C:\lscc` when Radiant is
@@ -105,8 +110,8 @@ Linux:
    servers in `~/.claude.json` and in `$XDG_CONFIG_HOME/Claude/claude_desktop_config.json`
    (default `~/.config`). `./install.sh --uninstall` removes them;
    `./install.sh --read-only` leaves out the knowledge-base authoring tools as above.
-   The same skills dialogue runs (`--skills all|select|none`), installing into
-   `~/.claude/skills`; `bin/kb-skills` manages them later.
+   Design skills are served as above (`bin/kb-skills list`, MCP prompts, and
+   `bin/a2c-make agents-setup` in a project).
 3. Start a project: `bin/new-project <directory>` (as above), then
    `bin/a2c-make agents-setup` in the project.
 4. Optional, for native simulation: see [Native simulation](#native-simulation)

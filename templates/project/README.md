@@ -6,7 +6,8 @@ project template.
 ## Layout
 
 ```
-include/make/shared.mk  where arch2code is (A2C_ROOT from the bundle launchers, or a submodule at arch2code/)
+include/make/shared.mk  where arch2code is (A2C_ROOT from the bundle launchers, or a submodule at arch2code/) and the kb-skills launcher
+.kb/                    knowledge-base skills exported for agents-setup (generated, ignored)
 Makefile                agents-setup, preflight, and the arch2code targets once the YAML exists
 rundir/Makefile         model build and run
 AGENTS.append.md        appended to AGENTS.md by `make agents-setup`: flow routing, knowledge-base rules, execution rules
@@ -17,6 +18,6 @@ design/                 the design records written by the flow (see design/READM
 
 ## Starting a session
 
-1. `bin/a2c-make agents-setup` (from the bundle; `make agents-setup` with a development checkout and `A2C_ROOT` set): writes `AGENTS.md` and `CLAUDE.md` and deploys the skills under `.claude/skills/`. Rerun after a bundle upgrade.
+1. `bin/a2c-make agents-setup` (from the bundle; `make agents-setup` with a development checkout, `A2C_ROOT` and `KB_SKILLS` set): exports the knowledge base's reviewed skills for the designs `design/intent.yaml` names into `.kb/rules`, then writes `AGENTS.md` and `CLAUDE.md` and deploys the arch2code and knowledge-base skills under `.claude/skills/`, `.cursor/`, `.gemini/`, `.opencode/` and `.agents/`. Rerun after a bundle or knowledge-base update. The same skills are MCP prompts of the cortex-kb server (`/mcp__cortex-kb__<design>-<skill>` in Claude Code).
 2. The bundle installer has registered `arch2code` and `cortex-kb` for Claude Code. Copy `.mcp.json.example` to `.mcp.json` to add `lattice-cortex` and the Radiant servers for this project.
 3. Open the directory in Claude Code and say what the design must do; the `design-from-intent` skill asks the intake questions and writes `design/intent.yaml` for Gate 1.

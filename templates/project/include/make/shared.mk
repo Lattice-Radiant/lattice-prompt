@@ -21,6 +21,12 @@ HDL_TOP_MODULE = @PROJECT@
 
 # Project-local skills under rules/ and the AGENTS.append.md beside them are appended to
 # AGENTS.md by `make agents-setup` (knowledge-base rules, server precedence, project notes).
-EXTRA_A2C_RULES_DIRS := $(REPO_ROOT)/rules
+EXTRA_A2C_RULES_DIRS := $(REPO_ROOT)/rules $(REPO_ROOT)/.kb/rules
+
+# The knowledge base's reviewed skills for the designs this project names (design/intent.yaml):
+# `make kb-skills` exports them into .kb/rules through the bundle's kb-skills launcher (or
+# `cortex-kb skills` from a checkout when KB_SKILLS is set), and agents-setup deploys them into
+# every tool's skills folder. They are also MCP prompts of the cortex-kb server.
+KB_SKILLS ?= $(if $(LP_ROOT),$(LP_ROOT)/bin/kb-skills,cortex-kb skills)
 -include $(A2C_ROOT)/pro/include/make/a2cPro.mk
 include $(A2C_ROOT)/include/make/a2c-common.mk

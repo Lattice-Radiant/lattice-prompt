@@ -28,11 +28,14 @@ with Claude Code (`~/.claude.json`) and Claude Desktop, backing the files up;
 with its authoring tools by default, so Claude can add to the knowledge base
 as a design progresses (the tools write only to the local checkout until a
 pull request); `--read-only` registers it without them for a shared machine.
-The installer then offers the knowledge base's reviewed
-design skills (procedures for changing a design, Claude Code skill format):
-all, a selection, or none, into the user's Claude Code skills folder
-(`--skills all|select|none` without the dialogue; `bin/kb-skills` later).
-`python smoke.py` with the bundled interpreter reruns the release checks.
+The knowledge base's reviewed design skills are served, not copied:
+every reviewed skill is an MCP prompt of the knowledge-base server (invoked by
+name from Claude Code, Cursor and the other MCP clients, always the current
+version), and a project deploys them into every tool's skills folder with
+`bin/a2c-make agents-setup` (through `bin/kb-skills export-dir`). `bin/kb-skills
+list` shows them; `bin/kb-skills install --all` remains as a fallback copy for
+a session without a project. `python smoke.py` with the bundled interpreter
+reruns the release checks.
 
 ## Starting a project
 
@@ -43,8 +46,9 @@ pinned cortex-a2c inside the project), the agent-rules appendix with the flow
 routing and the knowledge-base rules, an empty `design/` for the flow's records
 (intent, decomposition, decisions, IP bindings, gaps, hand-off), and
 `.mcp.json.example` for the remaining servers. Then `bin/a2c-make agents-setup`
-in the project and open it in Claude Code; the `design-from-intent` skill runs
-the intake. `docs/integrated_flow_overview.pptx` in the repository presents
+in the project (it also exports and deploys the knowledge-base skills of the
+designs the project names) and open it in Claude Code; the `design-from-intent`
+skill runs the intake. `docs/integrated_flow_overview.pptx` in the repository presents
 the flow.
 
 ## New in this release
@@ -54,6 +58,9 @@ the flow.
   test (`regAccess: true` on an APB master stub, `reg_access_plan` and
   `reg_access_test` tools) and the `evidence` and `unverified` register keys;
   server precedence in the generated AGENTS.md.
+- Skills are served instead of copied: MCP prompts for every reviewed skill
+  and per-project deployment through `agents-setup`; the installer no longer
+  copies skills into `~/.claude/skills` (`--skills` options removed).
 - cortex-kb: register knowledge from IP-XACT memory maps and C headers
   (`kb_get_registers`, each register cited to file and line); the pilot
   evaluation task and the integrated-flow scorer measures; corpus pull

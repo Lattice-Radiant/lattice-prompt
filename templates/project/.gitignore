@@ -17,5 +17,7 @@ build/
 *.db
 *.db-*
 __pycache__/
+# knowledge-base skills exported for agents-setup (make kb-skills)
+.kb/
 # workstation-specific server registration (copy .mcp.json.example)
 .mcp.json

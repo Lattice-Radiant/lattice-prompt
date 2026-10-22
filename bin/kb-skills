@@ -1,7 +1,9 @@
 #!/bin/sh
 # Design skills of the bundled knowledge base (cortex-kb skills ...):
 #   kb-skills list [--all]                       reviewed skills (all with --all)
-#   kb-skills install --all | --select d/s,...   copy into ~/.claude/skills
+#   kb-skills export-dir DIR --project .         the project's skills as a rules directory
+#                                                for a2c-make agents-setup (new-project wires it)
+#   kb-skills install --all | --select d/s,...   fallback: copy into ~/.claude/skills
 #   kb-skills uninstall                          remove what install wrote
 . "$(dirname "$0")/_env.sh"
 exec "$LP_ROOT/python/bin/python3" -c "from kbtools.cli import main; main()" --repo "$LP_ROOT/components/cortex-kb" skills "$@"
