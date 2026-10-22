@@ -17,7 +17,7 @@ on:
       kb_family:
         description: 'Optional: keep only knowledge-base designs, boards and device notes of this family (for example certuspro_nx)'
         default: ''
-        required: true
+        required: false
       publish:
         description: 'Create a GitHub release with the archives'
         type: boolean
