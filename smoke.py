@@ -191,13 +191,16 @@ def check_notices():
     import sysconfig
     sp = sysconfig.get_paths()['purelib']
     first_party = {'arch2code-mcp', 'arch2code_mcp', 'cortex-kb', 'cortex_kb', 'pip'}
+    import re
+    norm = lambda s: re.sub(r'[-_.]+', '-', s).lower()  # noqa: E731 - PEP 503 name normalisation
+    listed = {norm(m.group(1)) for m in re.finditer(r'^\| ([^|]+?) \|', text, re.M)}
     missing = []
     for d in os.listdir(sp):
         if d.endswith('.dist-info'):
-            name = d.split('-')[0]
-            if name.lower() in first_party:
+            name = d[:-len('.dist-info')].rsplit('-', 1)[0]
+            if norm(name) in {norm(f) for f in first_party}:
                 continue
-            if f'| {name} |' not in text and f'| {name.replace("_", "-")} |' not in text and f'| {name.replace("-", "_")} |' not in text:
+            if norm(name) not in listed:
                 missing.append(name)
     check(not missing, 'THIRD_PARTY_NOTICES.md lists every bundled package' + (f' (missing: {", ".join(missing)})' if missing else ''))
     check('## Licence texts' in text, 'THIRD_PARTY_NOTICES.md carries the licence texts')
