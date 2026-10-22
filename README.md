@@ -120,6 +120,18 @@ Linux:
 On either platform `python smoke.py` (with the bundled interpreter) reruns
 the checks the release build ran.
 
+## Bundle size
+
+The components are cloned shallow (the pinned commit only; the knowledge
+base's version history is in its metadata, not in git), the knowledge base is
+filtered through `export-bundle` (confidential and export-controlled entries
+removed, vendored sources withheld), and `build/build.py --kb-design NAME` or
+`--kb-family FAMILY` (repeatable; the release workflow's `kb_family` input)
+produce a bundle that carries one team's designs, boards and device notes
+only. `VERSION.json` records the selectors. Inside a bundle the knowledge
+base's own size policy applies (its README, "Keeping the knowledge base
+compact"): raw reports capped, an entry size budget, one session database.
+
 ## Third-party notices and licence policy
 
 Every bundle carries `THIRD_PARTY_NOTICES.md` at its root: the Python packages

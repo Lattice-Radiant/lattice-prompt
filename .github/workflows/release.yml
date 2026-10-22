@@ -14,6 +14,9 @@ on:
     inputs:
       version:
         description: 'Bundle version, for example 0.1.0'
+      kb_family:
+        description: 'Optional: keep only knowledge-base designs, boards and device notes of this family (for example certuspro_nx)'
+        default: ''
         required: true
       publish:
         description: 'Create a GitHub release with the archives'
@@ -56,12 +59,12 @@ jobs:
         shell: pwsh
         run: |
           $make = (Get-Command make).Source
-          python build/build.py --version "${{ inputs.version }}" --platform win64 --make-exe "$make"
+          python build/build.py --version "${{ inputs.version }}" --platform win64 --make-exe "$make" $( [ -n "${{ inputs.kb_family }}" ] && echo "--kb-family ${{ inputs.kb_family }}" )
 
       - name: Build the bundle (Linux)
         if: matrix.platform == 'linux-x86_64'
         shell: bash
-        run: python build/build.py --version "${{ inputs.version }}" --platform linux-x86_64
+        run: python build/build.py --version "${{ inputs.version }}" --platform linux-x86_64 $( [ -n "${{ inputs.kb_family }}" ] && echo "--kb-family ${{ inputs.kb_family }}" )
 
       - name: Record what was built
         shell: bash

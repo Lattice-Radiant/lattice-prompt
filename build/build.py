@@ -147,8 +147,18 @@ def clone_component(name, src, dest):
     # From the local checkout, so no network and the same objects; detached
     # at the pinned commit, with origin pointing at the real remote so the
     # knowledge base can fetch its tracked ref when a network is present.
-    subprocess.run(['git', 'clone', '--quiet', '--no-local', '--no-checkout', src, dest], check=True)
-    subprocess.run(['git', 'checkout', '--quiet', '--detach', commit], cwd=dest, check=True)
+    # Shallow: the bundle carries the pinned commit only. The components'
+    # history (tens of megabytes) serves no one inside a bundle; the knowledge
+    # base's version history lives in its metadata, not in git. The local
+    # checkout is detached at the pinned commit, so its HEAD is what --depth 1
+    # takes; anything else falls back to a full clone of that commit.
+    try:
+        subprocess.run(['git', 'clone', '--quiet', '--no-local', '--depth', '1', '--no-checkout', src, dest], check=True)
+        subprocess.run(['git', 'checkout', '--quiet', '--detach', commit], cwd=dest, check=True)
+    except subprocess.CalledProcessError:
+        shutil.rmtree(dest, ignore_errors=True)
+        subprocess.run(['git', 'clone', '--quiet', '--no-local', '--no-checkout', src, dest], check=True)
+        subprocess.run(['git', 'checkout', '--quiet', '--detach', commit], cwd=dest, check=True)
     remote = git(['config', '--get', 'remote.origin.url'], cwd=src)
     subprocess.run(['git', 'remote', 'set-url', 'origin', remote], cwd=dest, check=True)
     assert component_commit(dest) == commit
@@ -206,6 +216,10 @@ def pip(py, args, cert):
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='assemble a lattice-prompt bundle')
     parser.add_argument('--version', required=True)
+    parser.add_argument('--kb-design', action='append', default=[], metavar='NAME',
+                    help='keep only this knowledge-base design in the bundle (repeatable; other kinds untouched)')
+    parser.add_argument('--kb-family', action='append', default=[], metavar='FAMILY',
+                    help='keep only designs, boards and device notes of this family (repeatable)')
     parser.add_argument('--make-exe', default=shutil.which('make'))
     parser.add_argument('--pip-cert', default=os.environ.get('PIP_CERT'))
     parser.add_argument('--seed-from', metavar='PYTHON',
@@ -308,7 +322,8 @@ def main(argv=None) -> int:
     # gets a filter commit so it stays clean for the server, and the record
     # goes into VERSION.json.
     log('filtering the knowledge base for distribution')
-    filt = subprocess.run([py, '-c', 'from kbtools.cli import main; main()', '--repo', kb, 'export-bundle', '--json'],
+    selectors = [a for d in args.kb_design for a in ('--design', d)] + [a for f in args.kb_family for a in ('--family', f)]
+    filt = subprocess.run([py, '-c', 'from kbtools.cli import main; main()', '--repo', kb, 'export-bundle', '--json'] + selectors,
                           capture_output=True, text=True, encoding='utf-8', errors='replace')
     if filt.returncode != 0:
         raise SystemExit(f'export-bundle failed:\n{filt.stdout}\n{filt.stderr}')
@@ -317,7 +332,7 @@ def main(argv=None) -> int:
     log(f"knowledge base: {rec.get('kept')} entries kept, {len(rec.get('removed', []))} removed, "
         f"{len(rec.get('stripped', []))} stripped of sources (classification <= {rec.get('max_classification')})")
     commits['cortex-kb'] = {'source': commits['cortex-kb'], 'bundle': distribution.get('committed'),
-                            'filter': {k: rec.get(k) for k in ('max_classification', 'include_restricted', 'vendored_sources', 'kept')},
+                            'filter': {k: rec.get(k) for k in ('max_classification', 'include_restricted', 'vendored_sources', 'designs', 'families', 'kept')},
                             'removed': [i['path'] for i in rec.get('removed', [])],
                             'stripped': [i['path'] for i in rec.get('stripped', [])]}
 
