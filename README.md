@@ -120,6 +120,21 @@ Linux:
 On either platform `python smoke.py` (with the bundled interpreter) reruns
 the checks the release build ran.
 
+## Third-party notices and licence policy
+
+Every bundle carries `THIRD_PARTY_NOTICES.md` at its root: the Python packages
+with their licences and licence texts, the bundled CPython, and on Windows Git
+and GNU make (GPL programs invoked as separate commands, with the source
+locations the licence requires). The build generates it (`build/notices.py`)
+from the installed package metadata and refuses to build when a package
+carries a licence outside the policy in `lock/licenses.json` (permissive
+licences only: MIT, BSD, Apache-2.0, ISC, PSF, MPL-2.0 and the like); an
+override there needs a reason and legal review. `python build/notices.py
+--python <interpreter>` runs the check on any environment. The smoke test
+confirms the notices file names every bundled package. Distribution outside
+Lattice remains subject to legal and export-control review of the knowledge
+base content; the classification filter is the mechanism, not the approval.
+
 ## Native simulation
 
 The generator, both MCP servers, Questa lint and everything the smoke test

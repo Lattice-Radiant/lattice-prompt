@@ -19,6 +19,14 @@ export-controlled entries are removed, and vendored sources are withheld
 records the filter, the removed entries and the knowledge-base commit the
 bundle was filtered from.
 
+## Third-party notices
+
+`THIRD_PARTY_NOTICES.md` at the bundle root lists every redistributed
+package with its licence and licence text, the bundled CPython, and on
+Windows Git for Windows (GPL-2.0) and GNU make (GPL-3.0) with the locations
+of their source code. The build enforces a permissive-licence policy
+(`lock/licenses.json`) on the Python packages.
+
 ## Install
 
 Windows: unzip anywhere, run `install.cmd`. Linux: `tar xzf` anywhere, run

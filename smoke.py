@@ -181,10 +181,33 @@ def check_servers():
     check(ok, f'kb-skills list answers ({count} reviewed skill(s))')
 
 
+def check_notices():
+    """THIRD_PARTY_NOTICES.md exists and names every distribution the bundled Python carries."""
+    path = os.path.join(ROOT, 'THIRD_PARTY_NOTICES.md')
+    if not os.path.isfile(path):
+        check(False, 'THIRD_PARTY_NOTICES.md present')
+        return
+    text = open(path, encoding='utf-8', errors='replace').read()
+    import sysconfig
+    sp = sysconfig.get_paths()['purelib']
+    first_party = {'arch2code-mcp', 'arch2code_mcp', 'cortex-kb', 'cortex_kb', 'pip'}
+    missing = []
+    for d in os.listdir(sp):
+        if d.endswith('.dist-info'):
+            name = d.split('-')[0]
+            if name.lower() in first_party:
+                continue
+            if f'| {name} |' not in text and f'| {name.replace("_", "-")} |' not in text and f'| {name.replace("-", "_")} |' not in text:
+                missing.append(name)
+    check(not missing, 'THIRD_PARTY_NOTICES.md lists every bundled package' + (f' (missing: {", ".join(missing)})' if missing else ''))
+    check('## Licence texts' in text, 'THIRD_PARTY_NOTICES.md carries the licence texts')
+
+
 def main() -> int:
     check_runtime()
     check_generator()
     check_servers()
+    check_notices()
     print(f'{len(failures)} check(s) failed' if failures else 'ALL CHECKS PASSED')
     return 1 if failures else 0
 

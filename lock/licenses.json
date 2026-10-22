@@ -1,0 +1,26 @@
+{
+  "_comment": "Licence policy of the bundle (build/notices.py). A Python package in the bundle must carry one of the allowed licences (every part of an OR/AND expression); a copyleft or undeclared licence fails the build unless an override names the package with the licence established by review and the reason. The bundled tools are listed with their licence and the source offer that the notices file states; git and make are GPL programs invoked as separate commands, nothing links against them, and the Linux bundle takes both from the system.",
+  "allowed": ["MIT", "MIT-0", "MIT-CMU", "BSD", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC", "PSF-2.0", "Python-2.0", "MPL-2.0", "Unlicense", "Zlib", "0BSD", "CC0-1.0", "HPND"],
+  "disallowed_examples": ["GPL-2.0", "GPL-3.0", "LGPL-2.1", "LGPL-3.0", "AGPL-3.0", "SSPL-1.0", "EUPL-1.2", "CC-BY-NC-4.0", "Proprietary", "not declared"],
+  "first_party": ["arch2code-mcp", "arch2code_mcp", "cortex-kb", "cortex_kb", "pip"],
+  "overrides": {
+    "junit-xml": {"license": "MIT", "reason": "metadata classifier says 'Freely Distributable' and MIT; the LICENSE file in the distribution is the MIT licence"}
+  },
+  "tools": {
+    "python": {
+      "license": "PSF-2.0 (CPython) with the licences of the statically linked libraries (OpenSSL Apache-2.0, libffi MIT, SQLite public domain, bzip2, zlib, xz, and others)",
+      "source": "CPython sources at https://www.python.org/downloads/source/; the exact build and its third-party licence files at the python-build-standalone release of the archive {archive}",
+      "note": "The bundled interpreter is the install_only build of python-build-standalone; its LICENSE.txt is reproduced below and the per-library notices are published with that release."
+    },
+    "git": {
+      "license": "GPL-2.0-only",
+      "source": "Git for Windows source and build recipe for this exact release: the tag named in {url} at https://github.com/git-for-windows/git (git itself: https://git-scm.com/downloads). Lattice will provide the corresponding source on request to any recipient of this bundle.",
+      "note": "MinGit is redistributed unmodified; it is invoked as a command by the makefiles and the knowledge-base tools and nothing in this bundle links against it."
+    },
+    "make": {
+      "license": "GPL-3.0-or-later",
+      "source": "GNU make 4.4.1 source at https://ftp.gnu.org/gnu/make/make-4.4.1.tar.gz; the Windows build from ezwinports (https://sourceforge.net/projects/ezwinports/). Lattice will provide the corresponding source on request to any recipient of this bundle.",
+      "note": "make.exe is redistributed unmodified and invoked as a command; nothing in this bundle links against it. The GPL-3.0 text is at https://www.gnu.org/licenses/gpl-3.0.txt."
+    }
+  }
+}

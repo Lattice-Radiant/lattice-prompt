@@ -321,6 +321,17 @@ def main(argv=None) -> int:
                             'removed': [i['path'] for i in rec.get('removed', [])],
                             'stripped': [i['path'] for i in rec.get('stripped', [])]}
 
+    # 4c: licence check and third-party notices (build/notices.py, policy in
+    # lock/licenses.json): every bundled package must carry an allowed licence,
+    # and THIRD_PARTY_NOTICES.md at the bundle root reproduces the licence texts
+    # and the source offers for the GPL tools. A disallowed or undeclared
+    # licence stops the build here.
+    log('licence check and third-party notices')
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import notices  # noqa: E402
+    notice_record = notices.generate(bundle, py, args.platform, third)
+    log(f"notices: {notice_record['packages']} packages, licences {', '.join(notice_record['licenses'])}")
+
     # 5: version record, smoke, archive
     version = {
         'name': name,
@@ -332,6 +343,7 @@ def main(argv=None) -> int:
                     'sha256': third['python'][args.platform]['sha256']},
         'tools': tools,
         'requirements_lock': os.path.basename(REQ_LOCK),
+        'notices': notice_record,
     }
     with open(os.path.join(bundle, 'VERSION.json'), 'w', encoding='utf-8') as fh:
         json.dump(version, fh, indent=2)
