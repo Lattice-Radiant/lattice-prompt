@@ -1,0 +1,5 @@
+#!/bin/sh
+# The lattice-cortex MCP server (cortex-mcp: Propel SoC sessions, IP facts, firmware,
+# validators, SoC manifest replay) over stdio, from the bundle's Python.
+. "$(dirname "$0")/_env.sh"
+exec "$LP_ROOT/python/bin/python3" -m lattice_prompt.server "$@"

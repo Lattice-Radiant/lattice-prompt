@@ -21,7 +21,7 @@ jsonschema-specifications==2025.9.1
 junit-xml==1.9
 Mako==1.4.3
 MarkupSafe==3.0.3
-mcp==1.11.0
+mcp==1.29.1
 oauthlib==3.3.1
 packaging==26.0
 pydantic==2.13.5
@@ -46,3 +46,6 @@ typing-inspection==0.4.4
 typing_extensions==4.16.0
 urllib3==2.8.0
 uvicorn==0.52.4
+lxml==6.1.2
+ply==3.11
+pyjwt==2.13.0

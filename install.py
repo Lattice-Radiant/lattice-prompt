@@ -1,10 +1,11 @@
 """Register the bundled MCP servers with Claude Code and Claude Desktop.
 
-Run with the bundled Python (install.cmd or install.sh does): it writes an `arch2code` and a
-`cortex-kb` entry, each pointing at a launcher in this bundle's bin
+Run with the bundled Python (install.cmd or install.sh does): it writes the four
+entries of the integrated flow, `arch2code`, `cortex-kb`, `lattice-cortex` and
+`lattice-radiant-mcp`, each pointing at a launcher in this bundle's bin
 directory, into ~/.claude.json (Claude Code, user scope) and into the Claude
-Desktop configuration, backing both files up first. --uninstall removes the
-two entries and the skills a previous run installed. cortex-kb is registered
+Desktop configuration, backing both files up first; an entry of the same name
+from a development checkout is replaced. --uninstall removes the four entries. cortex-kb is registered
 with its authoring tools (kb_author_*) by default, so Claude can add to the
 knowledge base as a design progresses; the tools write only to the local
 checkout until a pull request. --read-only registers the server without them
@@ -31,6 +32,8 @@ EXT = '.cmd' if WINDOWS else ''          # Linux launchers are shell scripts wit
 SERVERS = {
     'arch2code': os.path.join(HERE, 'bin', 'a2c-mcp' + EXT),
     'cortex-kb': os.path.join(HERE, 'bin', 'kb-mcp' + EXT),
+    'lattice-cortex': os.path.join(HERE, 'bin', 'lattice-cortex' + EXT),
+    'lattice-radiant-mcp': os.path.join(HERE, 'bin', 'lattice-radiant' + EXT),
 }
 
 
