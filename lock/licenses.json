@@ -2,7 +2,7 @@
   "_comment": "Licence policy of the bundle (build/notices.py). A Python package in the bundle must carry one of the allowed licences (every part of an OR/AND expression); a copyleft or undeclared licence fails the build unless an override names the package with the licence established by review and the reason. The bundled tools are listed with their licence and the source offer that the notices file states; git and make are GPL programs invoked as separate commands, nothing links against them, and the Linux bundle takes both from the system.",
   "allowed": ["MIT", "MIT-0", "MIT-CMU", "BSD", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC", "PSF-2.0", "Python-2.0", "MPL-2.0", "Unlicense", "Zlib", "0BSD", "CC0-1.0", "HPND"],
   "disallowed_examples": ["GPL-2.0", "GPL-3.0", "LGPL-2.1", "LGPL-3.0", "AGPL-3.0", "SSPL-1.0", "EUPL-1.2", "CC-BY-NC-4.0", "Proprietary", "not declared"],
-  "first_party": ["arch2code-mcp", "arch2code_mcp", "cortex-kb", "cortex_kb", "pip", "lattice-prompt-mcp-server", "lattice_prompt_mcp_server", "lattice-radiant-mcp", "lattice_radiant_mcp", "revealai"],
+  "first_party": ["arch2code-mcp", "arch2code_mcp", "cortex-kb", "cortex_kb", "pip", "lattice-prompt-mcp-server", "lattice_prompt_mcp_server"],
   "overrides": {
     "junit-xml": {"license": "MIT", "reason": "metadata classifier says 'Freely Distributable' and MIT; the LICENSE file in the distribution is the MIT licence"}
   },

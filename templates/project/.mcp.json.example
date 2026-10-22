@@ -1,5 +1,5 @@
 {
-  "_comment": "The four MCP servers of the integrated flow, every one a launcher of the lattice-prompt bundle. The installer registers all four at user scope, so a project needs this file only to pin another bundle or to add a server. Replace <bundle> with the extracted bundle directory; the file is workstation-specific, keep it out of version control. The lattice-radiant launcher merges the timing-closure tools only with TIMING_CLOSURE_MERGE_ENABLED=1 in env, which needs the cortex-framework and cortex-agent-impl packages installed into the bundle's Python.",
+  "_comment": "The three MCP servers of the lattice-prompt bundle (arch2code, cortex-kb, lattice-cortex), every one a launcher of the bundle, and the lattice-radiant-mcp server from its own installer. The bundle's installer registers its three servers at user scope, so a project needs this file only to pin another bundle or to add a server. Replace <bundle> with the extracted bundle directory and <lattice-radiant-mcp installation> with the virtual environment the Radiant installer created; the file is workstation-specific, keep it out of version control.",
   "mcpServers": {
     "arch2code": {
       "command": "<bundle>\bin\u00072c-mcp.cmd",
@@ -16,8 +16,11 @@
       "args": []
     },
     "lattice-radiant-mcp": {
-      "command": "<bundle>\bin\\lattice-radiant.cmd",
-      "args": []
+      "command": "<lattice-radiant-mcp installation>\\.venv_lattice-radiant-mcp-1.1.0\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "radiant_mcp"
+      ]
     }
   }
 }

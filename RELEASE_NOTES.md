@@ -1,12 +1,12 @@
-Bundles of the Lattice architecture tooling, the four MCP servers of the
-integrated design flow: `cortex-a2c` (the arch2code generator with its MCP
-server, Questa lint, SystemC and Verilator flow), `cortex-kb` (the knowledge
-base of verified designs, IP Catalog cores, patterns and boards with its MCP
-server), `cortex-mcp` (the `lattice-cortex` server: Propel SoC sessions, IP
-facts, firmware, validators, SoC manifest replay) and `cortex-bridge` (the
-`lattice-radiant-mcp` server: Radiant projects and flows, timing closure,
-constraints lint, programming, Reveal), with a private Python 3.12 and every
-package they need. A user's own Python, if any, plays no part.
+Bundles of the Lattice architecture tooling: `cortex-a2c` (the arch2code
+generator with its MCP server, Questa lint, SystemC and Verilator flow),
+`cortex-kb` (the knowledge base of verified designs, IP Catalog cores,
+patterns and boards with its MCP server) and `cortex-mcp` (the
+`lattice-cortex` server: Propel SoC sessions, IP facts, firmware, validators,
+SoC manifest replay), with a private Python 3.12 and every package they need.
+A user's own Python, if any, plays no part. The Radiant server
+`lattice-radiant-mcp` (cortex-bridge) ships with its own installer and is
+registered beside these.
 
 ## Assets
 
@@ -34,9 +34,9 @@ of their source code. The build enforces a permissive-licence policy
 ## Install
 
 Windows: unzip anywhere, run `install.cmd`. Linux: `tar xzf` anywhere, run
-`./install.sh`. Either registers the `arch2code`, `cortex-kb`, `lattice-cortex`
-and `lattice-radiant-mcp` MCP servers with Claude Code (`~/.claude.json`) and
-Claude Desktop, backing the files up and replacing entries of the same name
+`./install.sh`. Either registers the `arch2code`, `cortex-kb` and
+`lattice-cortex` MCP servers with Claude Code (`~/.claude.json`) and Claude
+Desktop, backing the files up and replacing entries of the same name
 from development checkouts; `--uninstall` removes the entries. The knowledge-base server is registered
 with its authoring tools by default, so Claude can add to the knowledge base
 as a design progresses (the tools write only to the local checkout until a
@@ -58,7 +58,8 @@ Makefiles that build with the bundle's arch2code (or with `--submodule`, a
 pinned cortex-a2c inside the project), the agent-rules appendix with the flow
 routing and the knowledge-base rules, an empty `design/` for the flow's records
 (intent, decomposition, decisions, IP bindings, gaps, hand-off), and
-`.mcp.json.example` to pin the four servers of a bundle per project. Then `bin/a2c-make agents-setup`
+`.mcp.json.example` to pin the bundle's servers per project and to add the
+Radiant server. Then `bin/a2c-make agents-setup`
 in the project (it also exports and deploys the knowledge-base skills of the
 designs the project names) and open it in Claude Code; the `design-from-intent`
 skill runs the intake. `docs/integrated_flow_overview.pptx` in the repository presents
@@ -66,12 +67,10 @@ the flow.
 
 ## New in this release
 
-- The bundle now carries all four servers of the integrated flow: `cortex-mcp`
-  (`bin/lattice-cortex`) and `cortex-bridge` (`bin/lattice-radiant`, with the
-  revealai plugin installed; the timing-closure tools stay outside the bundle,
-  they need the `cortex-framework` and `cortex-agent-impl` packages) join
-  `cortex-a2c` and `cortex-kb`; the installer registers the four of them and
-  the project template's `.mcp.json.example` points every entry at the bundle.
+- `cortex-mcp` joins the bundle as the `lattice-cortex` server
+  (`bin/lattice-cortex`); the installer registers it with `arch2code` and
+  `cortex-kb`, and the project template's `.mcp.json.example` points the three
+  entries at the bundle (the Radiant server keeps its own installer).
 - arch2code: the SoC manifest generator (phase P5 of the integrated flow):
   `socProjects`, `socInstances`, `socInterconnections`, `socNets`,
   `socAddresses`, `socPorts`, `socConstants` and `socGlue` sections of the
@@ -86,9 +85,9 @@ the flow.
   cache pruning after a build and `cortex-kb cache-prune`, partial clones of
   the sources, `export-bundle --design/--family` selectors used by the
   bundle's `--kb-design/--kb-family` options).
-- The third-party notices and the permissive-licence check now cover the two
-  added servers (first-party packages `lattice-prompt-mcp-server`,
-  `lattice-radiant-mcp` and `revealai`); `mcp` moves to 1.29.1 for them.
+- The third-party notices and the permissive-licence check cover the added
+  server (first-party package `lattice-prompt-mcp-server`); `mcp` moves to
+  1.29.1 for it.
 
 ## Native simulation (optional, not bundled)
 

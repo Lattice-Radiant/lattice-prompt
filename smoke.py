@@ -178,15 +178,6 @@ def check_servers():
         check('error' in text, 'lattice-cortex MCP: propel_compare_sbx_manifest answers with a structured error for missing files')
     except Exception as exc:  # noqa: BLE001
         check(False, f'lattice-cortex MCP: {exc}')
-    radiant = os.path.join(ROOT, 'bin', 'lattice-radiant' + EXT)
-    try:
-        names, text = asyncio.run(mcp_session(radiant, ('detect_radiant_installations', {})))
-        check(len(names) >= 30 and 'run_tcl' in names, f'lattice-radiant MCP: {len(names)} tools')
-        # the timing-closure tools need cortex-framework and cortex-agent-impl, not bundled
-        check('perceive_timing' not in names, 'lattice-radiant MCP: timing-closure merge off (packages not bundled)')
-        check(bool(text), 'lattice-radiant MCP: detect_radiant_installations answers')
-    except Exception as exc:  # noqa: BLE001
-        check(False, f'lattice-radiant MCP: {exc}')
     # the skills launcher lists the knowledge base's reviewed skills (design skills)
     r = run([os.path.join(ROOT, 'bin', 'kb-skills' + EXT), 'list', '--json'])
     ok = r.returncode == 0 and r.stdout.strip().startswith(('[', '{'))
@@ -206,7 +197,7 @@ def check_notices():
     text = open(path, encoding='utf-8', errors='replace').read()
     import sysconfig
     sp = sysconfig.get_paths()['purelib']
-    first_party = {'arch2code-mcp', 'arch2code_mcp', 'cortex-kb', 'cortex_kb', 'pip', 'lattice-prompt-mcp-server', 'lattice_prompt_mcp_server', 'lattice-radiant-mcp', 'lattice_radiant_mcp', 'revealai'}
+    first_party = {'arch2code-mcp', 'arch2code_mcp', 'cortex-kb', 'cortex_kb', 'pip', 'lattice-prompt-mcp-server', 'lattice_prompt_mcp_server'}
     import re
     norm = lambda s: re.sub(r'[-_.]+', '-', s).lower()  # noqa: E731 - PEP 503 name normalisation
     listed = {norm(m.group(1)) for m in re.finditer(r'^\| ([^|]+?) \|', text, re.M)}

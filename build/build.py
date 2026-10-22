@@ -12,7 +12,7 @@ the bundled interpreter). Steps, each idempotent on a clean dist directory:
 2. Lay out dist/lattice-prompt-<version>-<platform>: python/ (the relocatable
    CPython), on Windows git/ (MinGit) and tools/make.exe, the platform's
    launchers in bin/, install.py with install.cmd or install.sh, smoke.py.
-3. Clone the two components from the submodule checkouts at their pinned
+3. Clone the components from the submodule checkouts at their pinned
    commits (single-branch, depth 1; the generator's makefiles and the
    knowledge base need a git checkout, not an export).
 4. Install the packages into the bundled Python: from lock/requirements.lock
@@ -50,9 +50,6 @@ COMPONENTS = {
     'cortex-kb': os.path.join(ROOT, 'components', 'cortex-kb'),
     # the lattice-cortex server (package lattice_prompt, module lattice_prompt.server)
     'cortex-mcp': os.path.join(ROOT, 'components', 'cortex-mcp'),
-    # the lattice-radiant server (package radiant_mcp) with its revealai plugin wheel and the
-    # timing-closure package under src/ (on the launcher's module path)
-    'cortex-bridge': os.path.join(ROOT, 'components', 'cortex-bridge'),
 }
 LOCK_DIR = os.path.join(ROOT, 'lock')
 REQ_LOCK = os.path.join(LOCK_DIR, 'requirements.lock')
@@ -65,14 +62,14 @@ PLATFORMS = {
     'win64': {
         'python': ('python.exe',),
         'bundle_tools': True,
-        'launchers': ('_env.cmd', 'a2c-mcp.cmd', 'kb-mcp.cmd', 'kb-skills.cmd', 'a2c-make.cmd', 'a2c-shell.cmd', 'new-project.cmd', 'lattice-cortex.cmd', 'lattice-radiant.cmd'),
+        'launchers': ('_env.cmd', 'a2c-mcp.cmd', 'kb-mcp.cmd', 'kb-skills.cmd', 'a2c-make.cmd', 'a2c-shell.cmd', 'new-project.cmd', 'lattice-cortex.cmd'),
         'installer': 'install.cmd',
         'archive': '.zip',
     },
     'linux-x86_64': {
         'python': ('bin', 'python3'),
         'bundle_tools': False,
-        'launchers': ('_env.sh', 'a2c-mcp', 'kb-mcp', 'kb-skills', 'a2c-make', 'a2c-shell', 'new-project', 'lattice-cortex', 'lattice-radiant'),
+        'launchers': ('_env.sh', 'a2c-mcp', 'kb-mcp', 'kb-skills', 'a2c-make', 'a2c-shell', 'new-project', 'lattice-cortex'),
         'installer': 'install.sh',
         'archive': '.tar.gz',
     },
@@ -302,12 +299,7 @@ def main(argv=None) -> int:
     a2c = os.path.join(bundle, 'components', 'cortex-a2c')
     kb = os.path.join(bundle, 'components', 'cortex-kb')
     cmcp = os.path.join(bundle, 'components', 'cortex-mcp')
-    bridge = os.path.join(bundle, 'components', 'cortex-bridge')
-    # the revealai plugin of the radiant server ships as a wheel inside cortex-bridge
-    wheels = sorted(glob.glob(os.path.join(bridge, 'wheels', 'revealai-*.whl')))
-    if not wheels:
-        raise SystemExit('cortex-bridge carries no wheels/revealai-*.whl')
-    local = [os.path.join(a2c, 'mcp'), kb, cmcp, bridge] + wheels
+    local = [os.path.join(a2c, 'mcp'), kb, cmcp]
     if os.path.isfile(REQ_LOCK):
         pip(py, ['install', '--no-deps', '-r', REQ_LOCK], args.pip_cert)
         # Isolated builds, as on the first resolution: the bundled Python ships
@@ -315,11 +307,11 @@ def main(argv=None) -> int:
         pip(py, ['install', '--no-deps'] + local, args.pip_cert)
     else:
         constrain = ['-c', first_constraints(args.seed_from, bundle)]
-        pip(py, ['install'] + constrain + ['-r', os.path.join(a2c, 'requirements.txt'), os.path.join(a2c, 'mcp'), f'{kb}[mcp]', cmcp, bridge] + wheels, args.pip_cert)
+        pip(py, ['install'] + constrain + ['-r', os.path.join(a2c, 'requirements.txt'), os.path.join(a2c, 'mcp'), f'{kb}[mcp]', cmcp], args.pip_cert)
         frozen = subprocess.run([py, '-m', 'pip', 'freeze', '--exclude-editable'], capture_output=True,
                                 text=True, check=True).stdout
         lines = [l for l in frozen.splitlines()
-                 if l and not l.startswith(('arch2code-mcp', 'arch2code_mcp', 'cortex-kb', 'cortex_kb', 'lattice-prompt-mcp-server', 'lattice_prompt_mcp_server', 'lattice-radiant-mcp', 'lattice_radiant_mcp', 'revealai')) and '@' not in l]
+                 if l and not l.startswith(('arch2code-mcp', 'arch2code_mcp', 'cortex-kb', 'cortex_kb', 'lattice-prompt-mcp-server', 'lattice_prompt_mcp_server')) and '@' not in l]
         os.makedirs(LOCK_DIR, exist_ok=True)
         with open(REQ_LOCK, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write('# Written by build/build.py from the first resolution; later builds install exactly these.\n')
