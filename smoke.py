@@ -182,7 +182,8 @@ def check_servers():
     try:
         names, text = asyncio.run(mcp_session(radiant, ('detect_radiant_installations', {})))
         check(len(names) >= 30 and 'run_tcl' in names, f'lattice-radiant MCP: {len(names)} tools')
-        check('perceive_timing' in names, 'lattice-radiant MCP: timing-closure tools merged')
+        # the timing-closure tools need cortex-framework and cortex-agent-impl, not bundled
+        check('perceive_timing' not in names, 'lattice-radiant MCP: timing-closure merge off (packages not bundled)')
         check(bool(text), 'lattice-radiant MCP: detect_radiant_installations answers')
     except Exception as exc:  # noqa: BLE001
         check(False, f'lattice-radiant MCP: {exc}')

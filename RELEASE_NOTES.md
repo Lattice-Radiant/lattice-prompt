@@ -68,7 +68,8 @@ the flow.
 
 - The bundle now carries all four servers of the integrated flow: `cortex-mcp`
   (`bin/lattice-cortex`) and `cortex-bridge` (`bin/lattice-radiant`, with the
-  timing-closure tools merged and the revealai plugin installed) join
+  revealai plugin installed; the timing-closure tools stay outside the bundle,
+  they need the `cortex-framework` and `cortex-agent-impl` packages) join
   `cortex-a2c` and `cortex-kb`; the installer registers the four of them and
   the project template's `.mcp.json.example` points every entry at the bundle.
 - arch2code: the SoC manifest generator (phase P5 of the integrated flow):

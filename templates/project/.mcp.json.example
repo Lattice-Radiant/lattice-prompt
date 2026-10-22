@@ -1,5 +1,5 @@
 {
-  "_comment": "The four MCP servers of the integrated flow, every one a launcher of the lattice-prompt bundle. The installer registers all four at user scope, so a project needs this file only to pin another bundle or to add a server. Replace <bundle> with the extracted bundle directory; the file is workstation-specific, keep it out of version control. The lattice-radiant launcher sets the timing-closure variables itself (internal surface, full tier); set them in env to change the tier.",
+  "_comment": "The four MCP servers of the integrated flow, every one a launcher of the lattice-prompt bundle. The installer registers all four at user scope, so a project needs this file only to pin another bundle or to add a server. Replace <bundle> with the extracted bundle directory; the file is workstation-specific, keep it out of version control. The lattice-radiant launcher merges the timing-closure tools only with TIMING_CLOSURE_MERGE_ENABLED=1 in env, which needs the cortex-framework and cortex-agent-impl packages installed into the bundle's Python.",
   "mcpServers": {
     "arch2code": {
       "command": "<bundle>\bin\u00072c-mcp.cmd",

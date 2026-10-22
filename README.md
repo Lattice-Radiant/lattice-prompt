@@ -40,8 +40,7 @@ lattice-prompt-<version>-win64/
     a2c-mcp.cmd      the arch2code MCP server (stdio)
     kb-mcp.cmd       the cortex-kb MCP server (stdio)
     lattice-cortex.cmd   the lattice-cortex MCP server (stdio)
-    lattice-radiant.cmd  the lattice-radiant-mcp server (stdio; timing-closure
-                     tools merged, internal surface, full tier by default)
+    lattice-radiant.cmd  the lattice-radiant-mcp server (stdio)
     kb-skills.cmd    list, install and remove the knowledge base's design skills
     a2c-make.cmd     make with the bundle's tools on PATH
     a2c-shell.cmd    a command prompt with the bundle's tools on PATH
@@ -163,7 +162,13 @@ base content; the classification filter is the mechanism, not the approval.
 
 The generator, the four MCP servers, Questa lint and everything the smoke test
 covers work with the bundle alone (the Radiant server drives a Radiant
-installation on the machine; without one its tools report that none was found). Building and running a SystemC model, or
+installation on the machine; without one its tools report that none was found).
+The Radiant server's timing-closure tools (`perceive_timing`, `propose_levers`
+and the other tools of the `fpga_agent` package) are not in the bundle: they
+need the `cortex-framework` and `cortex-agent-impl` packages and their
+LangChain, LangGraph, OpenAI, Anthropic and chromadb dependency tree. With those
+installed into the bundle's Python, `TIMING_CLOSURE_MERGE_ENABLED=1` in the
+environment of `bin/lattice-radiant` merges them. Building and running a SystemC model, or
 the Verilator co-simulation of a block (`make -C rundir run VL_DUT=1`), also
 needs a C++ toolchain, SystemC, Boost and Verilator. They are not bundled:
 on Windows they come from MSYS2, on Linux from the distribution or a site

@@ -59,7 +59,9 @@ jobs:
         shell: pwsh
         run: |
           $make = (Get-Command make).Source
-          python build/build.py --version "${{ inputs.version }}" --platform win64 --make-exe "$make" $( [ -n "${{ inputs.kb_family }}" ] && echo "--kb-family ${{ inputs.kb_family }}" )
+          $extra = @()
+          if ("${{ inputs.kb_family }}") { $extra = @('--kb-family', "${{ inputs.kb_family }}") }
+          python build/build.py --version "${{ inputs.version }}" --platform win64 --make-exe "$make" @extra
 
       - name: Build the bundle (Linux)
         if: matrix.platform == 'linux-x86_64'
