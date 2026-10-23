@@ -213,11 +213,26 @@ def check_notices():
     check('## Licence texts' in text, 'THIRD_PARTY_NOTICES.md carries the licence texts')
 
 
+def check_template():
+    """The project template's .mcp.json.example parses and every command is a clean path (a
+    backslash that escaped as \b or \a once turned the bundle paths into control characters)."""
+    path = os.path.join(ROOT, 'templates', 'project', '.mcp.json.example')
+    try:
+        with open(path, encoding='utf-8') as fh:
+            servers = json.load(fh)['mcpServers']
+        bad = [name for name, entry in servers.items() if any(ord(ch) < 32 for ch in entry.get('command', ''))]
+        check(not bad, 'template .mcp.json.example: commands are clean paths' + (f' (control characters in {bad})' if bad else ''))
+        check({'arch2code', 'cortex-kb', 'lattice-cortex'} <= set(servers), 'template .mcp.json.example: the three bundle servers are listed')
+    except Exception as exc:  # noqa: BLE001
+        check(False, f'template .mcp.json.example: {exc}')
+
+
 def main() -> int:
     check_runtime()
     check_generator()
     check_servers()
     check_notices()
+    check_template()
     print(f'{len(failures)} check(s) failed' if failures else 'ALL CHECKS PASSED')
     return 1 if failures else 0
 
