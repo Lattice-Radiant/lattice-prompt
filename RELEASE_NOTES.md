@@ -36,8 +36,12 @@ of their source code. The build enforces a permissive-licence policy
 Windows: unzip anywhere, run `install.cmd`. Linux: `tar xzf` anywhere, run
 `./install.sh`. Either registers the `arch2code`, `cortex-kb` and
 `lattice-cortex` MCP servers with Claude Code (`~/.claude.json`) and Claude
-Desktop, backing the files up and replacing entries of the same name
-from development checkouts; `--uninstall` removes the entries. The knowledge-base server is registered
+Desktop, backing the files up. Entries are recognised by what they run: the
+cortex-mcp installer's `lattice-prompt` entry, a development checkout under any
+name or an older bundle's launcher is removed as a duplicate and its `env`
+block (Propel and Radiant locations) carried over, so each server starts once;
+`--keep-duplicates` leaves them, `--uninstall` removes the bundle entries. The
+knowledge-base server is registered
 with its authoring tools by default, so Claude can add to the knowledge base
 as a design progresses (the tools write only to the local checkout until a
 pull request); `--read-only` registers it without them for a shared machine.
@@ -66,6 +70,12 @@ skill runs the intake. `docs/integrated_flow_overview.pptx` in the repository pr
 the flow.
 
 ## New in this release
+
+- Installer: duplicate entries that run the same server under another key
+  (the cortex-mcp installer's `lattice-prompt`, development checkouts) are
+  removed and their environment carried over; Claude Code no longer loads the
+  lattice-cortex tool set twice. The project template's `.mcp.json.example`
+  bundle paths are escaped correctly (0.2.0 carried control characters).
 
 - `cortex-mcp` joins the bundle as the `lattice-cortex` server
   (`bin/lattice-cortex`); the installer registers it with `arch2code` and
