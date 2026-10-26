@@ -77,7 +77,7 @@ the flow.
   out). The server is created before its index build starts, and a
   `--skip-unresolved` build whose pinned sources are not in the cache (the
   bundle's offline default) is now cached and reused instead of being rebuilt
-  on every start. Pinned to cortex-kb commit 8f08073 (pull request #15).
+  on every start (cortex-kb pull request #15).
 
 - Installer: duplicate entries that run the same server under another key
   (the cortex-mcp installer's `lattice-prompt`, development checkouts) are
