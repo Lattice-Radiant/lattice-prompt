@@ -79,8 +79,13 @@ Windows:
 2. Run `install.cmd` (it runs `install.py` with the bundled Python). It registers
    `arch2code`, `cortex-kb` and `lattice-cortex` in `~/.claude.json`
    (Claude Code) and in the Claude Desktop configuration,
-   backing both files up; an entry of the same name from a development
-   checkout is replaced. `install.cmd --uninstall` removes them. The knowledge-base server is registered with its authoring
+   backing both files up. An entry is recognised by what it runs, not by its
+   key: the cortex-mcp installer's `lattice-prompt` entry, a development
+   checkout under any name or an older bundle's launcher is a duplicate of the
+   bundle server and is removed, with its `env` block (the Propel and Radiant
+   locations) carried over, so Claude Code starts each server once;
+   `--keep-duplicates` leaves them. `install.cmd --uninstall` removes the three
+   bundle entries only. The knowledge-base server is registered with its authoring
    tools (`kb_author_*`) by default, so Claude can add to the knowledge base as
    a design progresses; those tools write only to the local checkout until a
    pull request is opened. `install.cmd --read-only` registers it without them

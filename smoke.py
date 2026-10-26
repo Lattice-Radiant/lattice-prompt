@@ -227,12 +227,49 @@ def check_template():
         check(False, f'template .mcp.json.example: {exc}')
 
 
+def check_installer():
+    """install.py against a fabricated home: the cortex-mcp installer's lattice-prompt entry (same
+    server, other key, with an env block) and a development arch2code entry are replaced by the
+    bundle entries, the env block is carried over, unrelated entries stay, each server once."""
+    import subprocess
+    import tempfile
+    with tempfile.TemporaryDirectory() as home:
+        cfg = os.path.join(home, '.claude.json')
+        before = {'mcpServers': {
+            'lattice-prompt': {'command': 'C:/venv/python.exe', 'args': ['-m', 'lattice_prompt.server'],
+                               'env': {'LATTICE_PROPEL_BASE': 'C:/lscc/propel/2025.1'}},
+            'a2c-dev': {'command': '/work/cortex-a2c/.venv/bin/python', 'args': ['-m', 'arch2code_mcp']},
+            'cortex-kb': {'command': 'cortex-kb', 'args': ['serve']},
+            'radiant': {'command': 'python', 'args': ['-m', 'radiant_mcp']},
+        }, 'other': True}
+        with open(cfg, 'w', encoding='utf-8') as fh:
+            json.dump(before, fh)
+        env = dict(os.environ, HOME=home, USERPROFILE=home, APPDATA=os.path.join(home, 'appdata'),
+                   XDG_CONFIG_HOME=os.path.join(home, 'config'))
+        r = subprocess.run([PY, os.path.join(ROOT, 'install.py')], capture_output=True, text=True, env=env, cwd=home)
+        check_run(r, 'install.py runs against a fabricated home')
+        with open(cfg, encoding='utf-8') as fh:
+            after = json.load(fh)
+        servers = after.get('mcpServers', {})
+        check(set(servers) == {'arch2code', 'cortex-kb', 'lattice-cortex', 'radiant'},
+              f'installer: duplicates under other keys removed, unrelated entries kept ({sorted(servers)})')
+        check(servers.get('lattice-cortex', {}).get('env', {}).get('LATTICE_PROPEL_BASE') == 'C:/lscc/propel/2025.1',
+              'installer: env block of the replaced lattice-prompt entry carried over')
+        check(after.get('other') is True and os.path.basename(servers.get('arch2code', {}).get('command', '')).startswith('a2c-mcp'),
+              'installer: other settings untouched, arch2code points at the bundle launcher')
+        r = subprocess.run([PY, os.path.join(ROOT, 'install.py'), '--uninstall'], capture_output=True, text=True, env=env, cwd=home)
+        with open(cfg, encoding='utf-8') as fh:
+            servers = json.load(fh).get('mcpServers', {})
+        check(r.returncode == 0 and set(servers) == {'radiant'}, 'installer: --uninstall removes the three bundle entries only')
+
+
 def main() -> int:
     check_runtime()
     check_generator()
     check_servers()
     check_notices()
     check_template()
+    check_installer()
     print(f'{len(failures)} check(s) failed' if failures else 'ALL CHECKS PASSED')
     return 1 if failures else 0
 
