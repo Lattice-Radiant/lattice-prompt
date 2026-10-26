@@ -71,6 +71,14 @@ the flow.
 
 ## New in this release
 
+- cortex-kb: the `cortex-kb` server answers the MCP handshake in under 3 s
+  through `bin/kb-mcp` (0.2.1 took about 30 s, which tripped Claude Code's
+  start-up timeout and made `claude mcp list` report the server as timed
+  out). The server is created before its index build starts, and a
+  `--skip-unresolved` build whose pinned sources are not in the cache (the
+  bundle's offline default) is now cached and reused instead of being rebuilt
+  on every start. Pinned to cortex-kb commit 8f08073 (pull request #15).
+
 - Installer: duplicate entries that run the same server under another key
   (the cortex-mcp installer's `lattice-prompt`, development checkouts) are
   removed and their environment carried over; Claude Code no longer loads the
