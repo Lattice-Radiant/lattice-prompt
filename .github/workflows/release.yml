@@ -18,6 +18,11 @@ on:
         description: 'Optional: keep only knowledge-base designs, boards and device notes of this family (for example certuspro_nx)'
         default: ''
         required: false
+      profile:
+        description: 'Bundle profile: internal (policy classification limit) or customer (public entries only; archive name carries -customer)'
+        type: choice
+        options: [internal, customer]
+        default: internal
       publish:
         description: 'Create a GitHub release with the archives'
         type: boolean
@@ -61,24 +66,24 @@ jobs:
           $make = (Get-Command make).Source
           $extra = @()
           if ("${{ inputs.kb_family }}") { $extra = @('--kb-family', "${{ inputs.kb_family }}") }
-          python build/build.py --version "${{ inputs.version }}" --platform win64 --make-exe "$make" @extra
+          python build/build.py --version "${{ inputs.version }}" --platform win64 --make-exe "$make" --profile "${{ inputs.profile || 'internal' }}" @extra
 
       - name: Build the bundle (Linux)
         if: matrix.platform == 'linux-x86_64'
         shell: bash
-        run: python build/build.py --version "${{ inputs.version }}" --platform linux-x86_64 $( [ -n "${{ inputs.kb_family }}" ] && echo "--kb-family ${{ inputs.kb_family }}" )
+        run: python build/build.py --version "${{ inputs.version }}" --platform linux-x86_64 --profile "${{ inputs.profile || 'internal' }}" $( [ -n "${{ inputs.kb_family }}" ] && echo "--kb-family ${{ inputs.kb_family }}" )
 
       - name: Record what was built
         shell: bash
-        run: cat "dist/lattice-prompt-${{ inputs.version }}-${{ matrix.platform }}/VERSION.json"
+        run: cat "dist/lattice-prompt-${{ inputs.version }}${{ inputs.profile == 'customer' && '-customer' || '' }}-${{ matrix.platform }}/VERSION.json"
 
       - name: Upload the bundle as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lattice-prompt-${{ inputs.version }}-${{ matrix.platform }}
+          name: lattice-prompt-${{ inputs.version }}${{ inputs.profile == 'customer' && '-customer' || '' }}-${{ matrix.platform }}
           path: |
-            dist/lattice-prompt-${{ inputs.version }}-${{ matrix.platform }}.${{ matrix.archive }}
-            dist/lattice-prompt-${{ inputs.version }}-${{ matrix.platform }}.${{ matrix.archive }}.sha256
+            dist/lattice-prompt-${{ inputs.version }}${{ inputs.profile == 'customer' && '-customer' || '' }}-${{ matrix.platform }}.${{ matrix.archive }}
+            dist/lattice-prompt-${{ inputs.version }}${{ inputs.profile == 'customer' && '-customer' || '' }}-${{ matrix.platform }}.${{ matrix.archive }}.sha256
           if-no-files-found: error
 
   publish:
