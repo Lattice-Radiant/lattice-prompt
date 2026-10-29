@@ -71,6 +71,25 @@ the flow.
 
 ## New in this release
 
+- cortex-kb: performance knowledge with `kb_get_performance` and the two
+  accelerator patterns of the algorithm-to-SoC entry mode (phase Q2); the
+  benchmark plan for that entry mode; the reference design corpus registry
+  lists the 119 repositories of the internal Reference-Design group as
+  pending, and the registry writer keeps the file's comments; refreshed
+  GitHub upstream status.
+- cortex-mcp (`lattice-cortex`): Propel refreshes an interconnect's decode
+  after address segments are assigned and checks it before compile (a
+  headless SoC no longer faults on its first data access); `radiant_program`
+  matches the project's Radiant console, uses an absolute chain path and
+  surfaces the programmer log; `decode_sge` derives the ISA from the CPU's
+  extension parameters; algorithm-to-SoC firmware support (portability scan,
+  profiling harness, UART capture and profile parser; generated accelerator
+  drivers join the device table, the self-test and the coverage check;
+  `firmware_run_iss` runs the firmware on Renode with a platform derived from
+  the SGE).
+
+### Earlier releases (0.2.2, 0.2.1, 0.2.0)
+
 - cortex-kb: the `cortex-kb` server answers the MCP handshake in under 3 s
   through `bin/kb-mcp` (0.2.1 took about 30 s, which tripped Claude Code's
   start-up timeout and made `claude mcp list` report the server as timed
