@@ -1,5 +1,5 @@
 @echo off
-rem The cortex-kb MCP server over stdio, serving the bundled knowledge base.
+rem The lattice-knowledge-db MCP server (cortex-kb) over stdio, serving the bundled knowledge base.
 rem The session database and the pinned-source checkouts live under
 rem CORTEX_KB_CACHE (default %LOCALAPPDATA%\lattice-prompt\kb-cache).
 rem --skip-unresolved keeps the server starting offline: designs whose linked

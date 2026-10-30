@@ -1,26 +1,23 @@
 {
-  "_comment": "The three MCP servers of the lattice-prompt bundle (arch2code, cortex-kb, lattice-cortex), every one a launcher of the bundle, and the lattice-radiant-mcp server from its own installer. The bundle's installer registers its three servers at user scope, so a project needs this file only to pin another bundle or to add a server. Replace <bundle> with the extracted bundle directory and <lattice-radiant-mcp installation> with the virtual environment the Radiant installer created; the file is workstation-specific, keep it out of version control.",
+  "_comment": "The four MCP servers of the lattice-prompt bundle (lattice-arch2code-mcp, lattice-knowledge-db, lattice-propel-mcp, lattice-radiant-mcp), every one a launcher of the bundle. The bundle's installer registers them at user scope (and removes their old entries: arch2code, cortex-kb, lattice-cortex, lattice-prompt, radiant), so a project needs this file only to pin another bundle or to add a server. Replace <bundle> with the extracted bundle directory; the file is workstation-specific, keep it out of version control.",
   "mcpServers": {
-    "arch2code": {
-      "command": "<bundle>\\bin\\a2c-mcp.cmd",
+    "lattice-arch2code-mcp": {
+      "command": "<bundle>\\bin\\lattice-arch2code-mcp.cmd",
       "args": []
     },
-    "cortex-kb": {
-      "command": "<bundle>\\bin\\kb-mcp.cmd",
+    "lattice-knowledge-db": {
+      "command": "<bundle>\\bin\\lattice-knowledge-db.cmd",
       "args": [
         "--authoring"
       ]
     },
-    "lattice-cortex": {
-      "command": "<bundle>\\bin\\lattice-cortex.cmd",
+    "lattice-propel-mcp": {
+      "command": "<bundle>\\bin\\lattice-propel-mcp.cmd",
       "args": []
     },
     "lattice-radiant-mcp": {
-      "command": "<lattice-radiant-mcp installation>\\.venv_lattice-radiant-mcp-1.1.0\\Scripts\\python.exe",
-      "args": [
-        "-m",
-        "radiant_mcp"
-      ]
+      "command": "<bundle>\\bin\\lattice-radiant-mcp.cmd",
+      "args": []
     }
   }
 }

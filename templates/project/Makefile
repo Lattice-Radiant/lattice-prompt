@@ -24,7 +24,7 @@ agents-setup: kb-skills
 preflight:
 	@echo "arch2code: $(A2C_ROOT) ($$(git -C $(A2C_ROOT) describe --always --dirty 2>/dev/null || echo not a git checkout))"
 	@echo "Pro layer: $$( [ -d $(A2C_ROOT)/pro ] && echo present || echo absent )"
-	@echo "stage 0 continues with: kb_status (cortex-kb), toolchain_detect / questa_detect / list_projects (arch2code), lattice://health (lattice-cortex), detect_radiant_installations / check_environment (lattice-radiant-mcp)"
+	@echo "stage 0 continues with: kb_status (lattice-knowledge-db), toolchain_detect / questa_detect / list_projects (lattice-arch2code-mcp), lattice://health (lattice-propel-mcp), detect_radiant_installations / check_environment (lattice-radiant-mcp)"
 
 .PHONY: clean
 clean::

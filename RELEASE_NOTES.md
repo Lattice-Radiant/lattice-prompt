@@ -1,12 +1,12 @@
-Bundles of the Lattice architecture tooling: `cortex-a2c` (the arch2code
-generator with its MCP server, Questa lint, SystemC and Verilator flow),
-`cortex-kb` (the knowledge base of verified designs, IP Catalog cores,
-patterns and boards with its MCP server) and `cortex-mcp` (the
-`lattice-cortex` server: Propel SoC sessions, IP facts, firmware, validators,
-SoC manifest replay), with a private Python 3.12 and every package they need.
-A user's own Python, if any, plays no part. The Radiant server
-`lattice-radiant-mcp` (cortex-bridge) ships with its own installer and is
-registered beside these.
+Bundles of the Lattice architecture tooling with four MCP servers:
+`lattice-arch2code-mcp` (cortex-a2c: the arch2code generator, Questa lint,
+SystemC and Verilator flow), `lattice-knowledge-db` (cortex-kb: the knowledge
+base of verified designs, IP Catalog cores, patterns and boards),
+`lattice-propel-mcp` (cortex-mcp: Propel SoC sessions, IP facts, firmware,
+validators, RTL simulation, SoC manifest replay) and `lattice-radiant-mcp`
+(cortex-bridge: Radiant projects, builds, timing, IP generation and
+programming), with a private Python 3.12 and every package they need. A
+user's own Python, if any, plays no part.
 
 ## Assets
 
@@ -34,13 +34,17 @@ of their source code. The build enforces a permissive-licence policy
 ## Install
 
 Windows: unzip anywhere, run `install.cmd`. Linux: `tar xzf` anywhere, run
-`./install.sh`. Either registers the `arch2code`, `cortex-kb` and
-`lattice-cortex` MCP servers with Claude Code (`~/.claude.json`) and Claude
-Desktop, backing the files up. Entries are recognised by what they run: the
-cortex-mcp installer's `lattice-prompt` entry, a development checkout under any
-name or an older bundle's launcher is removed as a duplicate and its `env`
-block (Propel and Radiant locations) carried over, so each server starts once;
-`--keep-duplicates` leaves them, `--uninstall` removes the bundle entries. The
+`./install.sh`. Either registers the `lattice-arch2code-mcp`,
+`lattice-knowledge-db`, `lattice-propel-mcp` and `lattice-radiant-mcp` MCP
+servers with Claude Code (`~/.claude.json`) and Claude Desktop, backing the
+files up, and removes every old entry of them. Entries are recognised by what
+they run: an older bundle's `arch2code`, `cortex-kb` and `lattice-cortex`
+entries, the cortex-mcp installer's `lattice-prompt` entry, the Radiant
+installer's `radiant` or `lattice-radiant-mcp` entry, a development checkout
+under any name and project-scope entries in `~/.claude.json` are removed and
+their `env` blocks (Propel and Radiant locations, timing-closure settings)
+carried over, so each server starts once; `--keep-duplicates` leaves them,
+`--uninstall` removes the bundle entries under their new and old names. The
 knowledge-base server is registered
 with its authoring tools by default, so Claude can add to the knowledge base
 as a design progresses (the tools write only to the local checkout until a
@@ -62,8 +66,8 @@ Makefiles that build with the bundle's arch2code (or with `--submodule`, a
 pinned cortex-a2c inside the project), the agent-rules appendix with the flow
 routing and the knowledge-base rules, an empty `design/` for the flow's records
 (intent, decomposition, decisions, IP bindings, gaps, hand-off), and
-`.mcp.json.example` to pin the bundle's servers per project and to add the
-Radiant server. Then `bin/a2c-make agents-setup`
+`.mcp.json.example` to pin the bundle's four servers per project. Then
+`bin/a2c-make agents-setup`
 in the project (it also exports and deploys the knowledge-base skills of the
 designs the project names) and open it in Claude Code; the `design-from-intent`
 skill runs the intake. `docs/integrated_flow_overview.pptx` in the repository presents
@@ -71,6 +75,32 @@ the flow.
 
 ## New in this release
 
+- MCP servers renamed: `arch2code` is `lattice-arch2code-mcp`, `cortex-kb` is
+  `lattice-knowledge-db`, `lattice-cortex` (and the cortex-mcp installer's
+  `lattice-prompt`) is `lattice-propel-mcp`, and the Radiant server is
+  `lattice-radiant-mcp` (formerly also registered as `radiant`). Tool prefixes
+  follow (`mcp__lattice-knowledge-db__kb_find_designs`). The launchers in
+  `bin/` carry the new names. Packages, CLIs and repositories keep theirs.
+- lattice-radiant-mcp (cortex-bridge) is now part of the bundle, with its own
+  launcher, and the installer registers it; its separate installer is no
+  longer needed. Lock: `certifi` 2026.10.23, `PyJWT` 2.15.1, and
+  `cryptography` 50.0.2 with `cffi` 2.1.1 and `pycparser` 3.12 (its security
+  floors).
+- Self-contained Python: pyserial 3.5 is bundled (`firmware_capture_uart`), and
+  `smoke.py` fails the build when any module a bundled server imports does not
+  resolve in the bundle. lattice-radiant-mcp's timing-closure merge
+  (`perceive_timing`, `propose_levers`, `check_plan`, `bind_lever`,
+  `verify_non_regression`, `lint_rtl`, `lint_constraints` and others, from
+  cortex-agent-impl) is not included: the launcher keeps it off, the installer
+  drops `TIMING_CLOSURE_MERGE_ENABLED` and `CORTEX_TIMING_CLOSURE_MCP_*` from old
+  entries, and the guidance closes timing with `read_timing_report`,
+  `set_strategy` and a rebuild.
+- Skills: cortex-mcp's `lattice-cortex` skill is now `lattice-prompt`; the
+  outdated `lattice-radiant-automation` skill is removed from cortex-bridge, and
+  its installers delete copies installed earlier.
+- The installer removes the old entries of all four servers, including
+  project-scope entries in `~/.claude.json`, carrying their `env` blocks over;
+  `--uninstall` removes new and old names.
 - cortex-kb: performance knowledge with `kb_get_performance` and the two
   accelerator patterns of the algorithm-to-SoC entry mode (phase Q2); the
   benchmark plan for that entry mode; the reference design corpus registry

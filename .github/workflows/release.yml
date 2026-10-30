@@ -4,8 +4,9 @@ name: Release bundle
 # lattice-prompt-<version>-linux-x86_64.tar.gz on a Linux runner from the
 # pinned components and the runtime inputs in lock/third-party.json, runs the
 # smoke test inside each bundle, and attaches both archives to a GitHub
-# release when the run was dispatched with publish=true. The two components
-# are private repositories of the same organisation, so the checkout needs a
+# release when the run was dispatched with publish=true. The components
+# (cortex-a2c, cortex-kb, cortex-mcp, cortex-bridge) are private repositories
+# of the same organisation, so the checkout needs a
 # token that can read them (secret COMPONENTS_TOKEN); the default
 # GITHUB_TOKEN sees only this repository.
 
