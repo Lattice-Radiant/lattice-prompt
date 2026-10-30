@@ -167,56 +167,146 @@ covers work with the bundle alone. Building and running a SystemC model, or
 the Verilator co-simulation of a block (`make -C rundir run VL_DUT=1`), also
 needs a C++ toolchain, SystemC, Boost and Verilator. They are not bundled:
 on Windows they come from MSYS2, on Linux from the distribution or a site
-install. One-time setup per machine, in the bundle's directory
-(`<bundle>` below):
+install. One-time setup per machine; the Windows guide below assumes no
+familiarity with Clang or MSYS2.
 
 ### Windows (MSYS2 clang64)
 
-1. Install MSYS2 and the toolchain packages. In a command prompt:
+The native simulation on Windows uses the Clang compiler, SystemC, Boost and
+Verilator from MSYS2, a package manager for Windows that installs Linux-style
+development tools under `C:\msys64`. You do not need to know Clang or MSYS2 to
+follow these steps; they are done once per machine and take about 20 minutes,
+most of it download time (about 2 GB). Administrator rights are needed only
+for the MSYS2 installation itself.
 
-   ```
-   winget install --id MSYS2.MSYS2
-   ```
+Two things to know before you start:
 
-   then in the MSYS2 clang64 shell (`C:\msys64\clang64.exe`):
+- MSYS2 installs several "shells" (terminal windows). The bundle uses the one
+  called **MSYS2 CLANG64**. The others (MSYS2 MSYS, UCRT64, MINGW64) install
+  packages into different directories that the bundle does not look at, so
+  every command below that says "in the clang64 shell" must be typed in that
+  window and no other.
+- In that shell, Windows paths are written with forward slashes and the drive
+  letter after a leading slash: `C:\lattice-prompt` becomes
+  `/c/lattice-prompt`. The examples below assume the bundle was unpacked to
+  `C:\lattice-prompt`; replace that part if yours is elsewhere.
 
-   ```
-   pacman -Syu --needed mingw-w64-clang-x86_64-clang mingw-w64-clang-x86_64-lld \
-       mingw-w64-clang-x86_64-make mingw-w64-clang-x86_64-cmake \
-       mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-boost \
-       mingw-w64-clang-x86_64-fmt mingw-w64-clang-x86_64-verilator perl
-   ```
+**Step 1: install MSYS2.** Open a normal Windows command prompt or
+PowerShell window and run:
 
-   Verilator 5.050 or newer is required (older releases do not compile as
-   C++23 under libc++); `pacman -Syu` first if the mirror offers an older one.
+```
+winget install --id MSYS2.MSYS2
+```
 
-2. Install SystemC and finish the Verilator setup. In the same clang64 shell,
-   with the bundle at `C:\lattice-prompt` for example:
+Accept the licence prompt. This installs MSYS2 under `C:\msys64`, which is
+where the bundle expects it. If `winget` is not available on your machine,
+download the installer from https://www.msys2.org and keep the default
+installation folder `C:\msys64`. (A different folder works too; see
+"Troubleshooting" for the variable to set.)
 
-   ```
-   /c/lattice-prompt/components/cortex-a2c/scripts/windows/setup-systemc-msys2.sh
-   ```
+**Step 2: open the clang64 shell.** In the Start menu, type `clang64` and
+open **MSYS2 CLANG64**. You can also start it as `C:\msys64\clang64.exe`.
+A terminal window opens with a prompt ending in `CLANG64`. If the prompt
+ends in `MSYS`, `UCRT64` or `MINGW64`, close it and open the CLANG64 one.
 
-   The script installs MSYS2's SystemC 3.0 package, repacks it into a static
-   library the model links without a DLL, checks the Verilator version and
-   raises the stack reserve of `verilator_bin.exe` (its default 1 MB
-   overflows on real designs). Rerun it after a Verilator package update.
+**Step 3: update MSYS2.** In the clang64 shell, run:
 
-3. Verify. In a command prompt, from the bundle directory:
+```
+pacman -Syu
+```
 
-   ```
-   bin\a2c-make -C components\cortex-a2c\examples\helloWorld\rundir -j4 all
-   bin\a2c-make -C components\cortex-a2c\examples\helloWorld\rundir run
-   ```
+Answer `Y` when asked to proceed. The first time, the update replaces core
+files and ends with a message asking you to close the window: close it,
+open **MSYS2 CLANG64** again, and run the same command once more. Repeat
+until it reports `there is nothing to do`. (This step matters: an outdated
+package database can offer a Verilator older than 5.050, which the bundle
+cannot use.)
 
-   The run ends with `No error`. In Claude, the `toolchain_detect` tool of the
-   `arch2code` server reports the same toolchain state.
+**Step 4: install the toolchain packages.** In the clang64 shell, run the
+following as one line:
 
-The makefiles find MSYS2 under `C:\msys64` (`A2C_MSYS2_ROOT` overrides the
-location) and set `SYSTEMC_INCLUDE`, `SYSTEMC_LIBDIR`, `BOOST_INCLUDE`,
-`BOOST_LIBS` and `VERILATOR_ROOT` from it, so no environment variables are
-needed. Behind a TLS-inspecting proxy, `pacman` needs the proxy's CA chain
-in `/etc/pki/ca-trust/source/anchors/` followed by `update-ca-trust`.
+```
+pacman -S --needed mingw-w64-clang-x86_64-clang mingw-w64-clang-x86_64-lld mingw-w64-clang-x86_64-make mingw-w64-clang-x86_64-cmake mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-boost mingw-w64-clang-x86_64-fmt mingw-w64-clang-x86_64-verilator perl
+```
+
+Answer `Y` to proceed. What each package is for:
+
+| Package | Provides |
+| --- | --- |
+| `mingw-w64-clang-x86_64-clang` | the C++ compiler that builds the SystemC model |
+| `mingw-w64-clang-x86_64-lld` | the linker that goes with it |
+| `mingw-w64-clang-x86_64-make`, `-cmake`, `-ninja` | build tools the makefiles and Verilator call |
+| `mingw-w64-clang-x86_64-boost` | the Boost library the models use for command-line options |
+| `mingw-w64-clang-x86_64-fmt` | a formatting library the models use |
+| `mingw-w64-clang-x86_64-verilator` | Verilator, which turns the RTL into C++ for co-simulation |
+| `perl` | needed by Verilator's launcher and by the setup script of step 5 |
+
+When the command finishes, check the Verilator version:
+
+```
+verilator_bin --version
+```
+
+It must print `Verilator 5.050` or a newer number. If it is older, go back
+to step 3 (the package database was stale) and run step 4 again.
+
+**Step 5: install SystemC and finish the Verilator setup.** Still in the
+clang64 shell, run the setup script that ships in the bundle. With the bundle
+at `C:\lattice-prompt`:
+
+```
+/c/lattice-prompt/components/cortex-a2c/scripts/windows/setup-systemc-msys2.sh
+```
+
+The script installs MSYS2's SystemC 3.0 package, repacks it into a static
+library so a model runs without a DLL, checks the Verilator version again,
+and raises the stack size of `verilator_bin.exe` (its default 1 MB
+overflows on real designs). It prints lines like these when it succeeds:
+
+```
+Installing mingw-w64-clang-x86_64-systemc
+Repacking the static object members of /clang64/lib/libsystemc.a
+SystemC 3.0.2: 88 objects in /clang64/lib/libsystemc_static.a
+Installing mingw-w64-clang-x86_64-verilator
+Verilator 5.050
+/clang64/bin/verilator_bin.exe: stack reserve 1048576 -> 268435456
+```
+
+Run the script again whenever you update the Verilator package later.
+
+**Step 6: verify.** Close the clang64 shell. Open a normal Windows command
+prompt (not MSYS2), go to the bundle directory and build and run the
+smallest example:
+
+```
+cd C:\lattice-prompt
+bin\a2c-make -C components\cortex-a2c\examples\helloWorld\rundir -j4 all
+bin\a2c-make -C components\cortex-a2c\examples\helloWorld\rundir run
+```
+
+The first command compiles the example model (a minute or two); the second
+runs it and its last lines contain `No error`. In Claude, the
+`toolchain_detect` tool of the `arch2code` server reports the same toolchain
+as found.
+
+Nothing else has to be configured: the makefiles look for MSYS2 under
+`C:\msys64` and take the compiler, SystemC, Boost and Verilator from its
+`clang64` directory, so no environment variables are needed in your command
+prompt or in Claude.
+
+**Troubleshooting**
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `bash: pacman: command not found` | The command was typed in a Windows command prompt. Steps 3 to 5 run in the MSYS2 CLANG64 shell (step 2). |
+| `verilator_bin --version` prints a number below 5.050, or the setup script says `Verilator ... is older than 5.050` | The package database is stale. Run `pacman -Syu` (step 3, including the close-and-reopen cycle), then step 4 and step 5 again. |
+| The setup script says `missing llvm-ar` | Step 4 was not run, or was run in the wrong shell. Run it in the CLANG64 shell. |
+| The setup script says `run this from an MSYS2 shell` | It was started from a Windows command prompt. Start it from the CLANG64 shell with the `/c/...` form of the path. |
+| `No such file or directory` for the script | The bundle is not at `C:\lattice-prompt`. Use the `/c/<your folder>/components/cortex-a2c/scripts/windows/setup-systemc-msys2.sh` form of your own path. |
+| `pacman` cannot download (certificate or TLS errors) | A proxy inspects TLS. Copy the proxy's CA certificate (PEM) into `C:\msys64\etc\pki\ca-trust\source\anchors\` and run `update-ca-trust` in the clang64 shell, then retry. |
+| Step 6 stops with a message naming a missing variable such as `SYSTEMC_INCLUDE` | MSYS2 is not under `C:\msys64`, or step 4 or 5 did not complete. If MSYS2 is elsewhere, set `A2C_MSYS2_ROOT` to its folder (for example `D:\msys64`) in the command prompt before running `a2c-make`, and in the `env` of the `arch2code` server in `.mcp.json`. |
+| Verilator exits with status `0xC00000FD` | The stack size was not raised (step 5 was skipped or Verilator was updated afterwards). Run the setup script again. |
+| `winget` is not recognised | Install MSYS2 from the installer at https://www.msys2.org and continue with step 2. |
 
 ### Linux
 

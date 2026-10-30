@@ -131,11 +131,12 @@ the flow.
 Building a SystemC model or running the Verilator co-simulation needs a C++
 toolchain, SystemC, Boost and Verilator on the machine.
 
-- Windows: `winget install --id MSYS2.MSYS2`; in the clang64 shell install
-  the `mingw-w64-clang-x86_64-{clang,lld,make,cmake,ninja,boost,fmt,verilator}`
-  packages and `perl` (Verilator 5.050 or newer); then run
-  `components/cortex-a2c/scripts/windows/setup-systemc-msys2.sh` from that
-  shell. No environment variables are needed afterwards.
+- Windows: follow the step-by-step guide in README.md, section "Native
+  simulation", "Windows (MSYS2 clang64)": install MSYS2, open the MSYS2
+  CLANG64 shell, update it, install the listed packages (Verilator 5.050 or
+  newer), run `components/cortex-a2c/scripts/windows/setup-systemc-msys2.sh`
+  from that shell, then verify from a Windows command prompt. No environment
+  variables are needed afterwards; the guide has a troubleshooting table.
 - Linux: clang++ (or `A2C_CLANG`), Boost `program_options`, Verilator 5.x and
   SystemC 2.3.4 or 3.0; export `SYSTEMC_INCLUDE`, `SYSTEMC_LIBDIR`,
   `BOOST_INCLUDE` and `LD_BOOST`.
