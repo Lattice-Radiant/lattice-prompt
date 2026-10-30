@@ -279,6 +279,18 @@ archives to a GitHub release of this repository. Private submodules need a
 token with read access to both component repositories in the
 `COMPONENTS_TOKEN` secret.
 
+## Bundle profiles
+
+`--profile internal` (the default) filters the bundled knowledge base at the
+classification limit of its policy (`seed/policy.yaml`,
+`distribution.max_classification`). `--profile customer` is the bundle a
+customer runs in the algorithm-to-SoC flow (decision 3 and section 8.3 of
+`plans/algorithm-to-soc-flow.md` in cortex-a2c): the knowledge base is filtered
+at `public`, the archive is named `lattice-prompt-<version>-customer-<platform>`,
+`VERSION.json` records `"profile": "customer"` and the limit applied, and
+`smoke.py` fails the build when any bundled entry declares a classification
+above public. The `release` workflow takes the profile as an input.
+
 ## Updating the pins
 
 ```

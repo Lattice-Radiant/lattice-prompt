@@ -76,6 +76,18 @@ PLATFORMS = {
 }
 
 
+# Bundle profiles. `internal` is the bundle Lattice engineers run: the knowledge
+# base filtered at the policy's classification limit (seed/policy.yaml,
+# distribution.max_classification). `customer` is the bundle a customer runs
+# (algorithm-to-SoC flow, decision 3): public entries only, the archive name
+# carries the profile, VERSION.json records it, and smoke.py checks that no entry
+# above public is present.
+PROFILES = {
+    'internal': {'suffix': '', 'max_classification': None},
+    'customer': {'suffix': '-customer', 'max_classification': 'public'},
+}
+
+
 def host_platform():
     if sys.platform == 'win32':
         return 'win64'
@@ -219,6 +231,10 @@ def pip(py, args, cert):
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='assemble a lattice-prompt bundle')
     parser.add_argument('--version', required=True)
+    parser.add_argument('--profile', choices=sorted(PROFILES), default='internal',
+                        help='bundle profile: internal (knowledge base filtered at the policy classification, '
+                             'the default) or customer (public entries only; the archive name carries '
+                             '-customer and VERSION.json records the profile; smoke.py refuses an entry above public)')
     parser.add_argument('--kb-design', action='append', default=[], metavar='NAME',
                     help='keep only this knowledge-base design in the bundle (repeatable; other kinds untouched)')
     parser.add_argument('--kb-family', action='append', default=[], metavar='FAMILY',
@@ -240,7 +256,8 @@ def main(argv=None) -> int:
 
     with open(os.path.join(LOCK_DIR, 'third-party.json'), encoding='utf-8') as fh:
         third = json.load(fh)
-    name = f'lattice-prompt-{args.version}-{args.platform}'
+    profile = PROFILES[args.profile]
+    name = f'lattice-prompt-{args.version}{profile["suffix"]}-{args.platform}'
     dist = os.path.join(ROOT, 'dist')
     bundle = os.path.join(dist, name)
     if os.path.isdir(bundle):
@@ -328,6 +345,11 @@ def main(argv=None) -> int:
     # goes into VERSION.json.
     log('filtering the knowledge base for distribution')
     selectors = [a for d in args.kb_design for a in ('--design', d)] + [a for f in args.kb_family for a in ('--family', f)]
+    # The customer profile (algorithm-to-SoC flow, decision 3 and section 8.3 of its
+    # design document): only public entries leave the repository, whatever the
+    # policy's limit says; the record in VERSION.json carries the limit applied.
+    if profile['max_classification']:
+        selectors += ['--max-classification', profile['max_classification']]
     filt = subprocess.run([py, '-c', 'from kbtools.cli import main; main()', '--repo', kb, 'export-bundle', '--json'] + selectors,
                           capture_output=True, text=True, encoding='utf-8', errors='replace')
     if filt.returncode != 0:
@@ -356,6 +378,7 @@ def main(argv=None) -> int:
     version = {
         'name': name,
         'version': args.version,
+        'profile': args.profile,
         'platform': args.platform,
         'built': time.strftime('%Y-%m-%dT%H:%M:%S'),
         'components': commits,

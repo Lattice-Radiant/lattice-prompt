@@ -263,6 +263,46 @@ def check_installer():
         check(r.returncode == 0 and set(servers) == {'radiant'}, 'installer: --uninstall removes the three bundle entries only')
 
 
+def check_profile():
+    """VERSION.json names the profile; a customer bundle carries no knowledge-base
+    entry above public (the distribution record says the limit applied, and every
+    metadata file in the bundled knowledge base agrees)."""
+    path = os.path.join(ROOT, 'VERSION.json')
+    try:
+        with open(path, encoding='utf-8') as fh:
+            version = json.load(fh)
+    except (OSError, ValueError) as exc:
+        check(False, f'VERSION.json readable: {exc}')
+        return
+    profile = version.get('profile')
+    check(profile in ('internal', 'customer'), f'VERSION.json names the bundle profile ({profile})')
+    if profile != 'customer':
+        return
+    rec = (version.get('components') or {}).get('cortex-kb', {}).get('filter') or {}
+    check(rec.get('max_classification') == 'public',
+          f"customer profile: the knowledge base was filtered at public (record says {rec.get('max_classification')})")
+    above = []
+    scanned = 0
+    for kind in ('designs', 'patterns', 'anti_patterns', 'boards', 'ip_catalog', 'device_notes'):
+        base = os.path.join(KB, kind)
+        if not os.path.isdir(base):
+            continue
+        for root, _dirs, files in os.walk(base):
+            if 'metadata.yaml' not in files:
+                continue
+            scanned += 1
+            with open(os.path.join(root, 'metadata.yaml'), encoding='utf-8', errors='replace') as fh:
+                for line in fh:
+                    stripped = line.strip()
+                    if stripped.startswith('classification:'):
+                        value = stripped.split(':', 1)[1].split('#', 1)[0].strip().strip('"\'')
+                        if value and value != 'public':
+                            above.append(f'{os.path.relpath(root, KB)} ({value})')
+                        break
+    check(not above, f'customer profile: no entry above public among {scanned} metadata file(s)'
+          + (f' (found: {", ".join(above[:5])})' if above else ''))
+
+
 def main() -> int:
     check_runtime()
     check_generator()
@@ -270,6 +310,7 @@ def main() -> int:
     check_notices()
     check_template()
     check_installer()
+    check_profile()
     print(f'{len(failures)} check(s) failed' if failures else 'ALL CHECKS PASSED')
     return 1 if failures else 0
 
