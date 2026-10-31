@@ -1,0 +1,10 @@
+#!/bin/sh
+# The lattice-radiant-mcp MCP server (cortex-bridge: Radiant projects, builds, timing,
+# IP generation, cable listing and programming) over stdio, from the bundle's Python.
+# The Radiant installation is found as the server documents it (RADIANT_EXE, its
+# configuration file, then the newest install under the default roots).
+. "$(dirname "$0")/_env.sh"
+# The timing-closure merge needs packages the bundle does not ship; keep it off even
+# when the user's environment sets it.
+unset TIMING_CLOSURE_MERGE_ENABLED
+exec "$LP_ROOT/python/bin/python3" -m radiant_mcp "$@"

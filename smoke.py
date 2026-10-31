@@ -78,7 +78,8 @@ def check_runtime():
     check(os.path.samefile(sys.executable, PY), f'running the bundled interpreter ({sys.executable})')
     check(sys.version_info[:2] == (3, 12), f'Python {sys.version.split()[0]}')
     for mod in ('yaml', 'jinja2', 'graphviz', 'ruamel.yaml', 'colorama', 'junit_xml',
-                'mcp', 'arch2code_mcp', 'kbtools', 'sqlalchemy', 'alembic', 'pydantic', 'click'):
+                'mcp', 'arch2code_mcp', 'kbtools', 'sqlalchemy', 'alembic', 'pydantic', 'click',
+                'lattice_prompt', 'radiant_mcp', 'serial', 'cryptography', 'jwt'):
         try:
             __import__(mod)
             check(True, f'import {mod}')
@@ -156,28 +157,37 @@ async def kb_status_when_built(command, timeout_s=900):
 
 
 def check_servers():
-    a2c = os.path.join(ROOT, 'bin', 'a2c-mcp' + EXT)
+    a2c = os.path.join(ROOT, 'bin', 'lattice-arch2code-mcp' + EXT)
     try:
         names, text = asyncio.run(mcp_session(a2c, ('toolchain_detect', {})))
-        check(len(names) >= 20 and 'generate' in names, f'arch2code MCP: {len(names)} tools')
-        check('"make"' in text, 'arch2code MCP: toolchain_detect answers')
+        check(len(names) >= 20 and 'generate' in names, f'lattice-arch2code-mcp: {len(names)} tools')
+        check('"make"' in text, 'lattice-arch2code-mcp: toolchain_detect answers')
     except Exception as exc:  # noqa: BLE001
-        check(False, f'arch2code MCP: {exc}')
-    kb = os.path.join(ROOT, 'bin', 'kb-mcp' + EXT)
+        check(False, f'lattice-arch2code-mcp: {exc}')
+    kb = os.path.join(ROOT, 'bin', 'lattice-knowledge-db' + EXT)
     try:
         names, text, status = asyncio.run(kb_status_when_built(kb))
-        check('kb_find_ips' in names, f'cortex-kb MCP: {len(names)} tools')
+        check('kb_find_ips' in names, f'lattice-knowledge-db: {len(names)} tools')
         check(isinstance(status, dict) and status and not status.get('building') and 'error' not in status,
-              f'cortex-kb MCP: kb_status answers ({str(text)[:80]})')
+              f'lattice-knowledge-db: kb_status answers ({str(text)[:80]})')
     except Exception as exc:  # noqa: BLE001
-        check(False, f'cortex-kb MCP: {exc}')
-    cortex = os.path.join(ROOT, 'bin', 'lattice-cortex' + EXT)
+        check(False, f'lattice-knowledge-db: {exc}')
+    propel = os.path.join(ROOT, 'bin', 'lattice-propel-mcp' + EXT)
     try:
-        names, text = asyncio.run(mcp_session(cortex, ('propel_compare_sbx_manifest', {'sbx_path': 'nowhere.sbx', 'manifest_path': 'nowhere.json'})))
-        check(len(names) >= 80 and 'propel_replay_manifest' in names, f'lattice-cortex MCP: {len(names)} tools')
-        check('error' in text, 'lattice-cortex MCP: propel_compare_sbx_manifest answers with a structured error for missing files')
+        names, text = asyncio.run(mcp_session(propel, ('propel_compare_sbx_manifest', {'sbx_path': 'nowhere.sbx', 'manifest_path': 'nowhere.json'})))
+        check(len(names) >= 80 and 'propel_replay_manifest' in names, f'lattice-propel-mcp: {len(names)} tools')
+        check('error' in text, 'lattice-propel-mcp: propel_compare_sbx_manifest answers with a structured error for missing files')
     except Exception as exc:  # noqa: BLE001
-        check(False, f'lattice-cortex MCP: {exc}')
+        check(False, f'lattice-propel-mcp: {exc}')
+    # No Radiant is needed: without confirm=True, program_device refuses before it looks for one.
+    radiant = os.path.join(ROOT, 'bin', 'lattice-radiant-mcp' + EXT)
+    try:
+        names, text = asyncio.run(mcp_session(radiant, ('program_device', {'work_dir': 'nowhere'})))
+        check(len(names) >= 50 and {'program_device', 'list_cables', 'add_compilation_job'} <= set(names)
+              and not [n for n in names if n.startswith('reveal_')], f'lattice-radiant-mcp: {len(names)} tools')
+        check('PROGRAM_CONFIRM_REQUIRED' in text, 'lattice-radiant-mcp: program_device refuses a live run without confirm')
+    except Exception as exc:  # noqa: BLE001
+        check(False, f'lattice-radiant-mcp: {exc}')
     # the skills launcher lists the knowledge base's reviewed skills (design skills)
     r = run([os.path.join(ROOT, 'bin', 'kb-skills' + EXT), 'list', '--json'])
     ok = r.returncode == 0 and r.stdout.strip().startswith(('[', '{'))
@@ -197,7 +207,8 @@ def check_notices():
     text = open(path, encoding='utf-8', errors='replace').read()
     import sysconfig
     sp = sysconfig.get_paths()['purelib']
-    first_party = {'arch2code-mcp', 'arch2code_mcp', 'cortex-kb', 'cortex_kb', 'pip', 'lattice-prompt-mcp-server', 'lattice_prompt_mcp_server'}
+    first_party = {'arch2code-mcp', 'arch2code_mcp', 'cortex-kb', 'cortex_kb', 'pip', 'lattice-prompt-mcp-server', 'lattice_prompt_mcp_server',
+                   'lattice-radiant-mcp', 'lattice_radiant_mcp'}
     import re
     norm = lambda s: re.sub(r'[-_.]+', '-', s).lower()  # noqa: E731 - PEP 503 name normalisation
     listed = {norm(m.group(1)) for m in re.finditer(r'^\| ([^|]+?) \|', text, re.M)}
@@ -222,15 +233,21 @@ def check_template():
             servers = json.load(fh)['mcpServers']
         bad = [name for name, entry in servers.items() if any(ord(ch) < 32 for ch in entry.get('command', ''))]
         check(not bad, 'template .mcp.json.example: commands are clean paths' + (f' (control characters in {bad})' if bad else ''))
-        check({'arch2code', 'cortex-kb', 'lattice-cortex'} <= set(servers), 'template .mcp.json.example: the three bundle servers are listed')
+        check(set(servers) == set(BUNDLE_SERVERS), 'template .mcp.json.example: the four bundle servers are listed, under their names')
     except Exception as exc:  # noqa: BLE001
         check(False, f'template .mcp.json.example: {exc}')
 
 
+BUNDLE_SERVERS = ('lattice-arch2code-mcp', 'lattice-knowledge-db', 'lattice-propel-mcp', 'lattice-radiant-mcp')
+
+
 def check_installer():
-    """install.py against a fabricated home: the cortex-mcp installer's lattice-prompt entry (same
-    server, other key, with an env block) and a development arch2code entry are replaced by the
-    bundle entries, the env block is carried over, unrelated entries stay, each server once."""
+    """install.py against a fabricated home: every old entry of a bundle server is replaced by the
+    entry under its new name -- the old bundle keys (arch2code, cortex-kb, lattice-cortex), the
+    cortex-mcp installer's lattice-prompt entry, the Radiant installer's radiant and
+    lattice-radiant-mcp entries, a development checkout under another key, and a project-scope
+    entry -- env blocks are carried over, unrelated entries stay, and --uninstall removes the
+    bundle entries under their new and old names."""
     import subprocess
     import tempfile
     with tempfile.TemporaryDirectory() as home:
@@ -238,10 +255,18 @@ def check_installer():
         before = {'mcpServers': {
             'lattice-prompt': {'command': 'C:/venv/python.exe', 'args': ['-m', 'lattice_prompt.server'],
                                'env': {'LATTICE_PROPEL_BASE': 'C:/lscc/propel/2025.1'}},
+            'lattice-cortex': {'command': 'C:/old-bundle/bin/lattice-cortex.cmd', 'args': []},
+            'arch2code': {'command': 'C:/old-bundle/bin/a2c-mcp.cmd', 'args': []},
             'a2c-dev': {'command': '/work/cortex-a2c/.venv/bin/python', 'args': ['-m', 'arch2code_mcp']},
             'cortex-kb': {'command': 'cortex-kb', 'args': ['serve']},
-            'radiant': {'command': 'python', 'args': ['-m', 'radiant_mcp']},
-        }, 'other': True}
+            'radiant': {'command': 'python', 'args': ['-m', 'radiant_mcp'], 'env': {'RADIANT_EXE': 'C:/r/radiantc.exe'}},
+            'lattice-radiant-mcp': {'command': 'C:/rmcp/.venv/Scripts/python.exe', 'args': ['-m', 'radiant_mcp'],
+                                    'env': {'TIMING_CLOSURE_MERGE_ENABLED': '1',
+                                            'CORTEX_TIMING_CLOSURE_MCP_ENABLED_TOOLS': 'perceive_timing'}},
+            'unrelated': {'command': 'node', 'args': ['server.js']},
+        }, 'projects': {'C:/proj': {'mcpServers': {
+            'cortex-kb': {'command': 'python', 'args': ['-m', 'kbtools.cli', 'serve']},
+            'mine': {'command': 'node', 'args': ['mine.js']}}}}, 'other': True}
         with open(cfg, 'w', encoding='utf-8') as fh:
             json.dump(before, fh)
         env = dict(os.environ, HOME=home, USERPROFILE=home, APPDATA=os.path.join(home, 'appdata'),
@@ -251,16 +276,27 @@ def check_installer():
         with open(cfg, encoding='utf-8') as fh:
             after = json.load(fh)
         servers = after.get('mcpServers', {})
-        check(set(servers) == {'arch2code', 'cortex-kb', 'lattice-cortex', 'radiant'},
-              f'installer: duplicates under other keys removed, unrelated entries kept ({sorted(servers)})')
-        check(servers.get('lattice-cortex', {}).get('env', {}).get('LATTICE_PROPEL_BASE') == 'C:/lscc/propel/2025.1',
+        check(set(servers) == set(BUNDLE_SERVERS) | {'unrelated'},
+              f'installer: old entries of the bundle servers removed, unrelated entries kept ({sorted(servers)})')
+        check(servers.get('lattice-propel-mcp', {}).get('env', {}).get('LATTICE_PROPEL_BASE') == 'C:/lscc/propel/2025.1',
               'installer: env block of the replaced lattice-prompt entry carried over')
-        check(after.get('other') is True and os.path.basename(servers.get('arch2code', {}).get('command', '')).startswith('a2c-mcp'),
-              'installer: other settings untouched, arch2code points at the bundle launcher')
+        renv = servers.get('lattice-radiant-mcp', {}).get('env', {})
+        check(renv.get('RADIANT_EXE') == 'C:/r/radiantc.exe' and 'TIMING_CLOSURE_MERGE_ENABLED' not in renv
+              and not any(k.startswith('CORTEX_TIMING_CLOSURE_MCP_') for k in renv),
+              'installer: Radiant settings carried over, the timing-closure merge settings dropped')
+        check(all(os.path.basename(servers.get(n, {}).get('command', '')).startswith(n) for n in BUNDLE_SERVERS),
+              'installer: every bundle server points at its bundle launcher')
+        project = after.get('projects', {}).get('C:/proj', {}).get('mcpServers', {})
+        check(set(project) == {'mine'}, f'installer: project-scope entry of a bundle server removed ({sorted(project)})')
+        check(after.get('other') is True, 'installer: other settings untouched')
+        after['mcpServers']['arch2code'] = {'command': 'C:/old-bundle/bin/a2c-mcp.cmd', 'args': []}
+        with open(cfg, 'w', encoding='utf-8') as fh:
+            json.dump(after, fh)
         r = subprocess.run([PY, os.path.join(ROOT, 'install.py'), '--uninstall'], capture_output=True, text=True, env=env, cwd=home)
         with open(cfg, encoding='utf-8') as fh:
             servers = json.load(fh).get('mcpServers', {})
-        check(r.returncode == 0 and set(servers) == {'radiant'}, 'installer: --uninstall removes the three bundle entries only')
+        check(r.returncode == 0 and set(servers) == {'unrelated'},
+              f'installer: --uninstall removes the bundle entries under new and old names only ({sorted(servers)})')
 
 
 def check_profile():
@@ -303,10 +339,75 @@ def check_profile():
           + (f' (found: {", ".join(above[:5])})' if above else ''))
 
 
+# Imports that are allowed not to resolve inside the bundle, each with the reason. Everything
+# else a bundled server imports -- at module level or inside a function -- must be importable
+# by the bundled Python, so no feature needs a separate pip install.
+OPTIONAL_IMPORTS = {
+    'timing_closure': "lattice-radiant-mcp's timing-closure merge, off in the bundle (needs cortex-agent-impl)",
+    'anthropic': 'cortex-kb draft-metadata command only (Claude API); no MCP tool uses it',
+    'cocotb': "cortex-a2c socket examples, optional import for cocotb-driven co-simulation",
+    'setuptools': 'cortex-a2c pysrc/table_format/setup.py, a packaging script, not imported at run time',
+    'table_format': 'cortex-a2c pysrc/table_format demo and its own test',
+    'pysrc': "cortex-a2c's own modules, imported with the checkout on sys.path",
+}
+
+
+def check_bundled_imports():
+    """Every top-level module the four servers import (module level and inside functions,
+    tests excluded) is importable by the bundled Python, unless OPTIONAL_IMPORTS names it."""
+    import ast
+    import importlib.util
+    roots = [os.path.join(A2C, 'mcp', 'src', 'arch2code_mcp'), os.path.join(A2C, 'pysrc'),
+             os.path.join(KB, 'kbtools'),
+             os.path.join(ROOT, 'components', 'cortex-mcp', 'src', 'lattice_prompt'),
+             os.path.join(ROOT, 'components', 'cortex-bridge', 'src', 'radiant_mcp')]
+    own = {'arch2code_mcp', 'kbtools', 'lattice_prompt', 'radiant_mcp', '__future__'}
+    stdlib = set(sys.stdlib_module_names)
+    where = {}
+    for root in roots:
+        for dirpath, _, files in os.walk(root):
+            if '__pycache__' in dirpath or os.sep + 'tests' in dirpath:
+                continue
+            for f in files:
+                if not f.endswith('.py'):
+                    continue
+                path = os.path.join(dirpath, f)
+                try:
+                    tree = ast.parse(open(path, encoding='utf-8', errors='replace').read())
+                except SyntaxError:
+                    continue
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        names = [a.name for a in node.names]
+                    elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                        names = [node.module]
+                    else:
+                        continue
+                    for name in names:
+                        top = name.split('.')[0]
+                        if top not in stdlib and top not in own:
+                            where.setdefault(top, (os.path.relpath(path, ROOT), name))
+    missing = []
+    for top, (path, full) in sorted(where.items()):
+        if top in OPTIONAL_IMPORTS:
+            continue
+        found = False
+        for candidate in (top, full):           # a namespace package (ruamel) resolves by its full name
+            try:
+                found = found or importlib.util.find_spec(candidate) is not None
+            except (ImportError, ValueError):
+                pass
+        if not found:
+            missing.append(f'{top} ({path})')
+    check(not missing, f'every import of the bundled servers resolves in the bundle ({len(where)} third-party modules)'
+          + (f'; missing: {", ".join(missing)}' if missing else ''))
+
+
 def main() -> int:
     check_runtime()
     check_generator()
     check_servers()
+    check_bundled_imports()
     check_notices()
     check_template()
     check_installer()

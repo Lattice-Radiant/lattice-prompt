@@ -3,10 +3,12 @@ alembic==1.20.0
 annotated-types==0.8.0
 anyio==4.14.2
 attrs==26.1.0
-certifi==2026.7.22
+certifi==2026.10.23
+cffi==2.1.1
 charset-normalizer==3.5.1
 click==8.5.0
 colorama==0.4.4
+cryptography==50.0.2
 defusedxml==0.7.1
 graphviz==0.21
 h11==0.16.0
@@ -24,9 +26,11 @@ MarkupSafe==3.0.3
 mcp==1.29.1
 oauthlib==3.3.1
 packaging==26.0
+pycparser==3.12
 pydantic==2.13.5
 pydantic-settings==2.15.0
 pydantic_core==2.46.5
+pyserial==3.5
 python-dotenv==1.2.3
 python-multipart==0.0.32
 pywin32==312; sys_platform == "win32"
@@ -48,4 +52,4 @@ urllib3==2.8.0
 uvicorn==0.52.4
 lxml==6.1.2
 ply==3.11
-pyjwt==2.13.0
+pyjwt==2.15.1

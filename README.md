@@ -1,17 +1,31 @@
 # lattice-prompt
 
-Release bundles of the Lattice architecture tooling for Windows and Linux:
-`cortex-a2c` (the arch2code generator with its MCP server, Questa lint, native
-SystemC and Verilator flow), `cortex-kb` (the knowledge base of verified
-designs, IP Catalog cores, patterns and boards with its MCP server) and
-`cortex-mcp` (the `lattice-cortex` server: Propel SoC sessions, IP facts,
-firmware, validators and the replay of an arch2code SoC manifest), shipped
-with a private Python and every package they need, so a user's own Python, if
-any, plays no part. The fourth server of the integrated flow, the Radiant
-server `lattice-radiant-mcp` (cortex-bridge), ships with its own installer and
-is registered beside these (see the project template's `.mcp.json.example`).
+Release bundles of the Lattice architecture tooling for Windows and Linux, with
+four MCP servers:
 
-This repository holds no product code. It pins the three components as
+| MCP server | Component | What it serves |
+| --- | --- | --- |
+| `lattice-arch2code-mcp` | `cortex-a2c` | the arch2code generator, Questa lint, the native SystemC and Verilator flow |
+| `lattice-knowledge-db` | `cortex-kb` | the knowledge base of verified designs, IP Catalog cores, patterns and boards |
+| `lattice-propel-mcp` | `cortex-mcp` | Propel SoC sessions, IP facts, firmware, validators, RTL simulation and the replay of an arch2code SoC manifest |
+| `lattice-radiant-mcp` | `cortex-bridge` | Radiant projects, builds, timing, IP generation, cable listing and programming |
+
+They ship with a private Python and every package they need, so a user's own
+Python, if any, plays no part and no feature needs a separate `pip install`:
+`smoke.py` checks that every module the four servers import, at module level
+or inside a function, resolves in the bundle (pyserial for
+`firmware_capture_uart` included). Three optional imports are deliberately left
+out and listed in `smoke.py` with the reason: lattice-radiant-mcp's
+timing-closure merge (`perceive_timing`, `bind_lever` and the other lever and
+lint tools of cortex-agent-impl, which need LLM packages; the launcher keeps
+the merge off and the installer does not carry its settings over), the
+`cortex-kb draft-metadata` command's Claude API client, and the `cocotb` import
+of the arch2code socket examples. Until 2026-10-30 the servers were registered as
+`arch2code`, `cortex-kb` and `lattice-cortex` (the cortex-mcp installer used
+`lattice-prompt`), and the Radiant server came with its own installer as
+`radiant` or `lattice-radiant-mcp`; the installer removes those entries.
+
+This repository holds no product code. It pins the four components as
 submodules, carries the packaging layer (launchers, installer, smoke test,
 release workflow) and records, per release, exactly what was bundled.
 
@@ -34,14 +48,16 @@ lattice-prompt-<version>-win64/
                  sources cache is created on first start under
                  %LOCALAPPDATA%\lattice-prompt
     cortex-mcp/  git checkout at the pinned commit (package lattice_prompt)
+    cortex-bridge/  git checkout at the pinned commit (package radiant_mcp)
   bin/
-    a2c-mcp.cmd      the arch2code MCP server (stdio)
-    kb-mcp.cmd       the cortex-kb MCP server (stdio)
-    lattice-cortex.cmd   the lattice-cortex MCP server (stdio)
+    lattice-arch2code-mcp.cmd   the lattice-arch2code-mcp server (stdio)
+    lattice-knowledge-db.cmd    the lattice-knowledge-db server (stdio)
+    lattice-propel-mcp.cmd      the lattice-propel-mcp server (stdio)
+    lattice-radiant-mcp.cmd     the lattice-radiant-mcp server (stdio)
     kb-skills.cmd    list, install and remove the knowledge base's design skills
     a2c-make.cmd     make with the bundle's tools on PATH
     a2c-shell.cmd    a command prompt with the bundle's tools on PATH
-  install.cmd    registers the three servers with Claude Code and Claude Desktop
+  install.cmd    registers the four servers with Claude Code and Claude Desktop
   smoke.py       the checks the release build ran
   VERSION.json   component commits, runtime and tool versions, checksums
 ```
@@ -56,9 +72,10 @@ lattice-prompt-<version>-linux-x86_64/
   components/    as on Windows (the knowledge base cache goes under
                  $XDG_CACHE_HOME/lattice-prompt, default ~/.cache)
   bin/
-    a2c-mcp, kb-mcp, lattice-cortex, kb-skills, a2c-make, a2c-shell,
-    new-project                                       POSIX sh launchers
-  install.sh     registers the three servers with Claude Code and Claude Desktop
+    lattice-arch2code-mcp, lattice-knowledge-db, lattice-propel-mcp,
+    lattice-radiant-mcp, kb-skills, a2c-make, a2c-shell, new-project
+                                                      POSIX sh launchers
+  install.sh     registers the four servers with Claude Code and Claude Desktop
   smoke.py, VERSION.json
 ```
 
@@ -77,22 +94,26 @@ Windows:
 
 1. Unzip `lattice-prompt-<version>-win64.zip` anywhere (no administrator rights).
 2. Run `install.cmd` (it runs `install.py` with the bundled Python). It registers
-   `arch2code`, `cortex-kb` and `lattice-cortex` in `~/.claude.json`
-   (Claude Code) and in the Claude Desktop configuration,
-   backing both files up. An entry is recognised by what it runs, not by its
-   key: the cortex-mcp installer's `lattice-prompt` entry, a development
-   checkout under any name or an older bundle's launcher is a duplicate of the
-   bundle server and is removed, with its `env` block (the Propel and Radiant
-   locations) carried over, so Claude Code starts each server once;
-   `--keep-duplicates` leaves them. `install.cmd --uninstall` removes the three
-   bundle entries only. The knowledge-base server is registered with its authoring
+   `lattice-arch2code-mcp`, `lattice-knowledge-db`, `lattice-propel-mcp` and
+   `lattice-radiant-mcp` in `~/.claude.json` (Claude Code) and in the Claude
+   Desktop configuration, backing both files up. Every old entry of these
+   servers is removed: an entry is recognised by what it runs, not by its key,
+   so an older bundle's `arch2code`, `cortex-kb` and `lattice-cortex` entries,
+   the cortex-mcp installer's `lattice-prompt` entry, the Radiant installer's
+   `radiant` or `lattice-radiant-mcp` entry, a development checkout under any
+   name, and project-scope entries in `~/.claude.json` that run one of them all
+   go, with their `env` blocks (the Propel and Radiant locations, the
+   timing-closure settings) carried over, so Claude Code starts each server
+   once, under its new name; `--keep-duplicates` leaves them.
+   `install.cmd --uninstall` removes the bundle entries under their new and old
+   names, and nothing else. The knowledge-base server is registered with its authoring
    tools (`kb_author_*`) by default, so Claude can add to the knowledge base as
    a design progresses; those tools write only to the local checkout until a
    pull request is opened. `install.cmd --read-only` registers it without them
    (a shared machine, or a server other people call).
    The knowledge base's reviewed **design skills** (procedures for changing a
    design) are not copied by the installer: every reviewed skill is an MCP
-   prompt of the knowledge-base server (`/mcp__cortex-kb__<design>-<skill>` in
+   prompt of the knowledge-base server (`/mcp__lattice-knowledge-db__<design>-<skill>` in
    Claude Code, listed the same way by Cursor and the other MCP clients, always
    the current version), and a project gets them deployed into every tool's
    skills folder by `bin\a2c-make agents-setup` (see "Start a project").
@@ -162,7 +183,7 @@ base content; the classification filter is the mechanism, not the approval.
 
 ## Native simulation
 
-The generator, the three MCP servers, Questa lint and everything the smoke test
+The generator, the four MCP servers, Questa lint and everything the smoke test
 covers work with the bundle alone. Building and running a SystemC model, or
 the Verilator co-simulation of a block (`make -C rundir run VL_DUT=1`), also
 needs a C++ toolchain, SystemC, Boost and Verilator. They are not bundled:
@@ -286,7 +307,7 @@ bin\a2c-make -C components\cortex-a2c\examples\helloWorld\rundir run
 
 The first command compiles the example model (a minute or two); the second
 runs it and its last lines contain `No error`. In Claude, the
-`toolchain_detect` tool of the `arch2code` server reports the same toolchain
+`toolchain_detect` tool of the `lattice-arch2code-mcp` server reports the same toolchain
 as found.
 
 Nothing else has to be configured: the makefiles look for MSYS2 under
@@ -304,7 +325,7 @@ prompt or in Claude.
 | The setup script says `run this from an MSYS2 shell` | It was started from a Windows command prompt. Start it from the CLANG64 shell with the `/c/...` form of the path. |
 | `No such file or directory` for the script | The bundle is not at `C:\lattice-prompt`. Use the `/c/<your folder>/components/cortex-a2c/scripts/windows/setup-systemc-msys2.sh` form of your own path. |
 | `pacman` cannot download (certificate or TLS errors) | A proxy inspects TLS. Copy the proxy's CA certificate (PEM) into `C:\msys64\etc\pki\ca-trust\source\anchors\` and run `update-ca-trust` in the clang64 shell, then retry. |
-| Step 6 stops with a message naming a missing variable such as `SYSTEMC_INCLUDE` | MSYS2 is not under `C:\msys64`, or step 4 or 5 did not complete. If MSYS2 is elsewhere, set `A2C_MSYS2_ROOT` to its folder (for example `D:\msys64`) in the command prompt before running `a2c-make`, and in the `env` of the `arch2code` server in `.mcp.json`. |
+| Step 6 stops with a message naming a missing variable such as `SYSTEMC_INCLUDE` | MSYS2 is not under `C:\msys64`, or step 4 or 5 did not complete. If MSYS2 is elsewhere, set `A2C_MSYS2_ROOT` to its folder (for example `D:\msys64`) in the command prompt before running `a2c-make`, and in the `env` of the `lattice-arch2code-mcp` server in `.mcp.json`. |
 | Verilator exits with status `0xC00000FD` | The stack size was not raised (step 5 was skipped or Verilator was updated afterwards). Run the setup script again. |
 | `winget` is not recognised | Install MSYS2 from the installer at https://www.msys2.org and continue with step 2. |
 
@@ -349,7 +370,7 @@ python build/build.py --version <version> [--platform win64|linux-x86_64] [--mak
 
 `--platform` defaults to the host. The build downloads the runtime (and, on
 Windows, MinGit) named in `lock/third-party.json` (verifying their SHA-256),
-clones the three components at their pinned commits (cortex-mcp from its
+clones the four components at their pinned commits (cortex-mcp from its
 `flow_integration` branch until that branch is merged), installs the packages from
 `lock/requirements.lock` into the bundled Python (or writes that lock on the
 first build), runs `smoke.py` inside the bundle and writes the archive with a
@@ -386,6 +407,8 @@ above public. The `release` workflow takes the profile as an input.
 ```
 git -C components/cortex-a2c fetch && git -C components/cortex-a2c checkout <tag or commit>
 git -C components/cortex-kb  fetch && git -C components/cortex-kb  checkout <tag or commit>
+git -C components/cortex-mcp fetch && git -C components/cortex-mcp checkout <tag or commit>
+git -C components/cortex-bridge fetch && git -C components/cortex-bridge checkout <tag or commit>
 git add components && git commit -m "Pin cortex-a2c <x>, cortex-kb <y>"
 ```
 

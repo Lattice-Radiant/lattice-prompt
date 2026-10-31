@@ -1,5 +1,5 @@
 #!/bin/sh
-# The cortex-kb MCP server over stdio, serving the bundled knowledge base.
+# The lattice-knowledge-db MCP server (cortex-kb) over stdio, serving the bundled knowledge base.
 # The session database and the pinned-source checkouts live under
 # CORTEX_KB_CACHE (default $XDG_CACHE_HOME/lattice-prompt/kb-cache).
 # --skip-unresolved keeps the server starting offline: designs whose linked

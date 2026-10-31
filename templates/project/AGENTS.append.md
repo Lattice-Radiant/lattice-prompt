@@ -1,18 +1,18 @@
 ## @PROJECT@: the integrated flow
 
-This project follows the integrated FPGA design flow (the "Agentic FPGA System Design Architecture" document, version 1.2): arch2code is the single source of truth, the knowledge base (cortex-kb) and lattice-cortex supply the evidence and the Propel and firmware runners, and Radiant is reached only through the bundle's tools. The flow, its thirteen stages, its three gates and the server precedence are in arch2code's `plans/integrated-flow.md`; the skills are `design-from-intent` (phases A and B) and `implement-from-handoff` (phases C to E). The records under `design/` are the single source of truth together with the project YAML; every session starts from them, never from memory.
+This project follows the integrated FPGA design flow (the "Agentic FPGA System Design Architecture" document, version 1.2): arch2code is the single source of truth, the knowledge base (the `lattice-knowledge-db` server) and `lattice-propel-mcp` supply the evidence and the Propel and firmware runners, and Radiant is reached only through the bundle's `lattice-radiant-mcp` server. The flow, its thirteen stages, its three gates and the server precedence are in arch2code's `plans/integrated-flow.md`; the skills are `design-from-intent` (phases A and B) and `implement-from-handoff` (phases C to E). The records under `design/` are the single source of truth together with the project YAML; every session starts from them, never from memory.
 
 | User intent | Skill |
 | :--- | :--- |
 | Start a design from an intent, or enter an existing design (extend an arch2code project, vary a captured design, extend a Propel SoC, debug) | `design-from-intent.md` |
 | Realise the SoC, implement RTL, write constraints, pass Gate 3, build with Radiant, build firmware, bring up the board, capture | `implement-from-handoff.md` from `design/handoff.md` |
 | Tandem verification of a hand-written leaf block | `run-tandem.md` (Pro) |
-| Radiant automation, timing closure, Reveal | the bundle's `lattice-radiant-automation`, `lattice-radiant-webdocs`, `reveal-debug` skills |
-| Propel SoC session, firmware | the `lattice-cortex` skill (cortex-mcp) |
+| Radiant builds, timing closure, programming | the `lattice-radiant-mcp` server; the bundle's `lattice-radiant-webdocs` skill for the Radiant documentation; Reveal debugging in the Radiant GUI |
+| Propel SoC session, firmware | the `lattice-prompt` skill (cortex-mcp) |
 
 ## Cortex KB usage rules
 
-Standing instructions for the `cortex-kb` MCP server, copied from that repository's `CLAUDE.md`. Lint and the model simulation run through the arch2code MCP first; the Radiant steps are stages 9 to 12 of `implement-from-handoff`.
+Standing instructions for the `lattice-knowledge-db` MCP server, copied from the cortex-kb repository's `CLAUDE.md`. Lint and the model simulation run through the `lattice-arch2code-mcp` server first; the Radiant steps are stages 9 to 12 of `implement-from-handoff`.
 
 - Call `kb_status` first. If the KB is degraded, stop and report the error.
 - Before proposing architecture or writing RTL, call `kb_find_designs`, `kb_find_modules`, and `kb_find_patterns` with the requirement. Use `min_maturity=reviewed` unless told otherwise.
@@ -35,8 +35,8 @@ Standing instructions for the `cortex-kb` MCP server, copied from that repositor
 
 ## Execution rules of the flow
 
-- Never run `arch2code.py` directly after project creation; use the arch2code MCP tools or the make targets.
-- Never run `propelbldc`, `propelbldmainc` or the RISC-V toolchain directly; use the lattice-cortex runners.
+- Never run `arch2code.py` directly after project creation; use the `lattice-arch2code-mcp` tools or the make targets.
+- Never run `propelbldc`, `propelbldmainc` or the RISC-V toolchain directly; use the `lattice-propel-mcp` runners.
 - Never run `radiantc`, `pnmainc`, Questa, backanno or the programmer directly; use the bundle's tools.
 - Never hand-edit a Propel- or Radiant-generated file, and never edit between generated-code markers.
 - Never reconstruct an IP core or a module from its port list.

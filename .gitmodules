@@ -8,3 +8,7 @@
 	path = components/cortex-mcp
 	url = https://github.com/Lattice-Radiant/cortex-mcp.git
 	branch = flow_integration
+[submodule "components/cortex-bridge"]
+	path = components/cortex-bridge
+	url = https://github.com/Lattice-Radiant/cortex-bridge.git
+	branch = main

@@ -1,29 +1,39 @@
 """Register the bundled MCP servers with Claude Code and Claude Desktop.
 
 Run with the bundled Python (install.cmd or install.sh does): it writes the
-three entries `arch2code`, `cortex-kb` and `lattice-cortex`, each pointing at a
-launcher in this bundle's bin directory, into ~/.claude.json (Claude Code, user
-scope) and into the Claude Desktop configuration, backing both files up first.
+four entries `lattice-arch2code-mcp`, `lattice-knowledge-db`,
+`lattice-propel-mcp` and `lattice-radiant-mcp`, each pointing at a launcher in
+this bundle's bin directory, into ~/.claude.json (Claude Code, user scope) and
+into the Claude Desktop configuration, backing both files up first.
 
-An entry is recognised by what it runs, not by its key: any existing entry
-that starts the same server (the cortex-mcp installer's `lattice-prompt` entry
-running `-m lattice_prompt.server`, a development checkout under any name, an
-older bundle's launcher) is a duplicate of the bundle server and is removed,
-so Claude Code starts each server once. The duplicate's `env` block (the
-cortex-mcp installer keeps LATTICE_PROPEL_BASE and LATTICE_RADIANT there) is
-carried over to the bundle entry. --keep-duplicates leaves other entries
-alone; --uninstall removes the three bundle entries only.
+The servers were renamed on 2026-10-30 (arch2code, cortex-kb, lattice-cortex,
+and radiant or lattice-radiant-mcp from its own installer). An entry is
+recognised by what it runs, not by its key: any existing entry that starts one
+of these servers (an older bundle's `arch2code`, `cortex-kb` or
+`lattice-cortex` entry, the cortex-mcp installer's `lattice-prompt` entry
+running `-m lattice_prompt.server`, a `radiant` or `lattice-radiant-mcp` entry
+from the Radiant installer running `-m radiant_mcp`, a development checkout
+under any name) is an old entry of the bundle server and is removed, so Claude
+Code starts each server once, under its new name. The old entry's `env` block
+(the cortex-mcp installer keeps LATTICE_PROPEL_BASE and LATTICE_RADIANT there,
+the Radiant installer RADIANT_* and the timing-closure settings) is carried
+over to the new entry. Project-scope entries in ~/.claude.json
+(projects.<path>.mcpServers) that run a bundle server are removed as well, since
+Claude Code would start them beside the user-scope entries. --keep-duplicates
+leaves all of those alone; --uninstall removes the bundle entries, under their
+new and old names.
 
-cortex-kb is registered with its authoring tools (kb_author_*) by default, so
-Claude can add to the knowledge base as a design progresses; the tools write
-only to the local checkout until a pull request. --read-only registers the
-server without them (a shared machine or a server other people call).
+The knowledge base server is registered with its authoring tools (kb_author_*)
+by default, so Claude can add to the knowledge base as a design progresses; the
+tools write only to the local checkout until a pull request. --read-only
+registers the server without them (a shared machine or a server other people
+call).
 
 The knowledge base's reviewed design skills are not copied anywhere: every
-reviewed skill is an MCP prompt of the cortex-kb server, and a project gets
-them deployed into every tool's skills folder by `bin/kb-skills export-dir`
-plus `make agents-setup` (bin/new-project sets this up). Nothing else on the
-machine is touched.
+reviewed skill is an MCP prompt of the lattice-knowledge-db server, and a
+project gets them deployed into every tool's skills folder by
+`bin/kb-skills export-dir` plus `make agents-setup` (bin/new-project sets this
+up). Nothing else on the machine is touched.
 """
 import argparse
 import json
@@ -37,20 +47,47 @@ WINDOWS = sys.platform == 'win32'
 EXT = '.cmd' if WINDOWS else ''          # Linux launchers are shell scripts without a suffix
 
 SERVERS = {
-    'arch2code': os.path.join(HERE, 'bin', 'a2c-mcp' + EXT),
-    'cortex-kb': os.path.join(HERE, 'bin', 'kb-mcp' + EXT),
-    'lattice-cortex': os.path.join(HERE, 'bin', 'lattice-cortex' + EXT),
+    'lattice-arch2code-mcp': os.path.join(HERE, 'bin', 'lattice-arch2code-mcp' + EXT),
+    'lattice-knowledge-db': os.path.join(HERE, 'bin', 'lattice-knowledge-db' + EXT),
+    'lattice-propel-mcp': os.path.join(HERE, 'bin', 'lattice-propel-mcp' + EXT),
+    'lattice-radiant-mcp': os.path.join(HERE, 'bin', 'lattice-radiant-mcp' + EXT),
+}
+
+# The keys the same servers were registered under before the rename (by an
+# older bundle, the cortex-mcp installer and the Radiant installer).
+OLD_KEYS = {
+    'lattice-arch2code-mcp': ('arch2code',),
+    'lattice-knowledge-db': ('cortex-kb',),
+    'lattice-propel-mcp': ('lattice-cortex', 'lattice-prompt'),
+    'lattice-radiant-mcp': ('radiant',),
 }
 
 # What each server runs, under any key and from any installation: the module
-# behind `-m`, the console script, or a bundle launcher. A token of an entry's
-# command or arguments that matches one of these names identifies the server.
+# behind `-m`, the console script, or a bundle launcher (the current one and the
+# one an older bundle shipped). A token of an entry's command or arguments that
+# matches one of these names identifies the server.
 SIGNATURES = {
-    'arch2code': {'arch2code_mcp', 'arch2code_mcp.server', 'arch2code-mcp', 'a2c-mcp'},
-    'cortex-kb': {'kbtools.mcp_server', 'kbtools.cli', 'cortex-kb', 'kb-mcp'},
-    'lattice-cortex': {'lattice_prompt.server', 'lattice_cortex.server', 'lattice-prompt-mcp', 'lattice-cortex'},
+    'lattice-arch2code-mcp': {'arch2code_mcp', 'arch2code_mcp.server', 'arch2code-mcp', 'a2c-mcp',
+                              'lattice-arch2code-mcp'},
+    'lattice-knowledge-db': {'kbtools.mcp_server', 'kbtools.cli', 'cortex-kb', 'kb-mcp', 'lattice-knowledge-db'},
+    'lattice-propel-mcp': {'lattice_prompt.server', 'lattice_cortex.server', 'lattice-prompt-mcp', 'lattice-cortex',
+                           'lattice-propel-mcp'},
+    'lattice-radiant-mcp': {'radiant_mcp', 'radiant_mcp.server', 'radiant-mcp', 'lattice-radiant-mcp'},
 }
-MODULES_IN_SNIPPETS = ('kbtools.cli', 'kbtools.mcp_server', 'lattice_prompt.server', 'lattice_cortex.server', 'arch2code_mcp')
+MODULES_IN_SNIPPETS = ('kbtools.cli', 'kbtools.mcp_server', 'lattice_prompt.server', 'lattice_cortex.server',
+                       'arch2code_mcp', 'radiant_mcp')
+KB = 'lattice-knowledge-db'
+
+# Settings that are never carried over to the bundle entry. The Radiant installer's
+# timing-closure merge (TIMING_CLOSURE_MERGE_ENABLED and the CORTEX_TIMING_CLOSURE_MCP_*
+# allowlist) needs packages the bundle does not ship (cortex-agent-impl and
+# cortex-framework); carried over, the server would try to load them at every start.
+DROPPED_ENV = ('TIMING_CLOSURE_MERGE_ENABLED',)
+DROPPED_ENV_PREFIXES = ('CORTEX_TIMING_CLOSURE_MCP_',)
+
+
+def _kept(var):
+    return var not in DROPPED_ENV and not var.startswith(DROPPED_ENV_PREFIXES)
 
 
 def config_files(desktop: bool):
@@ -111,7 +148,7 @@ def identify(entry):
 
 
 def duplicates(servers):
-    """{bundle server: [keys of other entries running it]}."""
+    """{bundle server: [keys of other entries running it]}: old keys and any other key."""
     found = {name: [] for name in SERVERS}
     for key, entry in servers.items():
         name = identify(entry)
@@ -128,14 +165,16 @@ def register(servers, server_args, keep_duplicates=False):
         entry = {'command': launcher, 'args': server_args.get(name, [])}
         env = {}
         previous = servers.get(name) or {}
-        if isinstance(previous.get('env'), dict):      # what an earlier bundle run carried over
-            env.update(previous['env'])
+        if isinstance(previous.get('env'), dict):      # an earlier run, or another install under the new key
+            env.update({k: v for k, v in previous['env'].items() if _kept(k)})
         if not keep_duplicates:
             for key in dups[name]:
                 old = servers.pop(key)
                 removed.append(key)
                 if isinstance(old.get('env'), dict) and old['env']:
-                    env.update(old['env'])
+                    for var, value in old['env'].items():
+                        if _kept(var):
+                            env.setdefault(var, value)  # the entry already under the new key wins
                     migrated.append(f'{key}.env -> {name}')
         if env:
             entry['env'] = env
@@ -143,43 +182,77 @@ def register(servers, server_args, keep_duplicates=False):
     return removed, migrated
 
 
+def unregister(servers):
+    """Remove the bundle entries under their new keys, and the old keys when they run a bundle server."""
+    removed = []
+    for name in SERVERS:
+        if servers.pop(name, None) is not None:
+            removed.append(name)
+        for key in OLD_KEYS[name]:
+            if key in servers and identify(servers[key]) == name:
+                servers.pop(key)
+                removed.append(key)
+    return removed
+
+
+def prune_projects(data):
+    """Remove project-scope entries (~/.claude.json projects.<path>.mcpServers) that run a bundle
+    server: Claude Code starts those beside the user-scope entries. Returns ['<path>: <key>', ...]."""
+    removed = []
+    for path, project in (data.get('projects') or {}).items():
+        servers = project.get('mcpServers') if isinstance(project, dict) else None
+        if not isinstance(servers, dict):
+            continue
+        for key in [k for k, entry in servers.items() if identify(entry)]:
+            servers.pop(key)
+            removed.append(f'{path}: {key}')
+    return removed
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='register the lattice-prompt MCP servers')
     parser.add_argument('--uninstall', action='store_true')
     parser.add_argument('--no-desktop', action='store_true', help='Claude Code only')
     parser.add_argument('--authoring', action='store_true', default=True,
-                        help='start the cortex-kb server with its authoring tools (kb_author_*), so Claude can '
-                             'add to the knowledge base as the design progresses (the default for a personal '
-                             'session; the tools write only to the local checkout until a pull request)')
+                        help='start the lattice-knowledge-db server with its authoring tools (kb_author_*), so '
+                             'Claude can add to the knowledge base as the design progresses (the default for a '
+                             'personal session; the tools write only to the local checkout until a pull request)')
     parser.add_argument('--read-only', dest='authoring', action='store_false',
-                        help='register the cortex-kb server without the authoring tools (a shared machine or server)')
+                        help='register the lattice-knowledge-db server without the authoring tools (a shared '
+                             'machine or server)')
     parser.add_argument('--keep-duplicates', action='store_true',
-                        help='leave other entries that run the same servers (for example the cortex-mcp '
-                             "installer's lattice-prompt entry) in place; by default they are removed and "
-                             'their env block is carried over, so each server starts once')
+                        help='leave other entries that run the same servers in place (old keys such as arch2code, '
+                             'cortex-kb, lattice-cortex, lattice-prompt and radiant, development checkouts, '
+                             'project-scope entries); by default they are removed and their env block is carried '
+                             'over, so each server starts once, under its new name')
     args = parser.parse_args(argv)
-    server_args = {'cortex-kb': ['--authoring'] if args.authoring else []}
+    server_args = {KB: ['--authoring'] if args.authoring else []}
 
     for name, launcher in SERVERS.items():
         if not args.uninstall and not os.path.isfile(launcher):
             print(f'missing launcher {launcher}', file=sys.stderr)
             return 1
 
+    user_config = os.path.join(os.path.expanduser('~'), '.claude.json')
     for path in config_files(not args.no_desktop):
         data = load(path)
         servers = data.setdefault('mcpServers', {})
         if args.uninstall:
-            removed = [n for n in SERVERS if servers.pop(n, None) is not None]
+            removed = unregister(servers)
             if removed:
                 save(path, data)
             print(f'{path}: removed {removed or "nothing"}')
             continue
         left = [k for keys in duplicates(servers).values() for k in keys] if args.keep_duplicates else []
         removed, migrated = register(servers, server_args, args.keep_duplicates)
+        projects = prune_projects(data) if path == user_config and not args.keep_duplicates else []
         save(path, data)
-        print(f'{path}: registered {list(SERVERS)}' + (' (cortex-kb with authoring tools)' if args.authoring else ' (cortex-kb read-only)'))
+        print(f'{path}: registered {list(SERVERS)}' + (f' ({KB} with authoring tools)' if args.authoring
+                                                       else f' ({KB} read-only)'))
         if removed:
-            print(f'{path}: removed duplicate entries running the same servers: {removed}')
+            print(f'{path}: removed old entries running the same servers: {removed}')
+        if projects:
+            print(f'{path}: removed project-scope entries running the same servers: {projects}')
         if migrated:
             print(f'{path}: carried over environment: {migrated}')
         if left:
@@ -195,7 +268,7 @@ def main(argv=None) -> int:
             if extra:
                 print(f'note: {project} also registers {extra} for this project; Claude Code starts those '
                       'beside the user-scope entries. Remove them or point them at this bundle.')
-        print('skills: reviewed design skills are served by the cortex-kb server as prompts; '
+        print(f'skills: reviewed design skills are served by the {KB} server as prompts; '
               'a project deploys them with bin/kb-skills export-dir and make agents-setup (see README)')
     return 0
 
